@@ -1,11 +1,13 @@
 import { OFS, LOCATIONS, STORAGE_KEY, initialData, validateData, identify, getPallet, palletsForOF, ofName, locationName } from './domain.mjs';
 import { createReader } from './camera.mjs';
-import { emptyContext, scanCode, confirmOperation, cancelOperation } from './workflow.mjs';
+import { emptyContext, scanCode, confirmOperation, beginMove, removeSelectedOF } from './workflow.mjs';
+import { createNavigation } from './navigation.mjs';
 import { createHidCollector } from './hid.mjs';
 
 const $ = id => document.getElementById(id);
 const esc = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-let data = initialData(), context = emptyContext(), storageNote = '';
+const navigation = createNavigation(emptyContext);
+let data = initialData(), context = navigation.current, storageNote = '';
 try {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
@@ -46,25 +48,33 @@ function renderPending(operation) {
     ${association ? `<div class="selection-list">${operation.ofs.map(code => `<div><strong>${esc(code)}</strong><span>${esc(ofName(code))}</span></div>`).join('')}</div><div class="destination"><span>PALLET DESTINO</span><strong>${esc(p.code)}</strong><p>${esc(locationName(p.location))}</p></div><p class="hint">Conserva las asociaciones en otros pallets.</p>` : `<div class="record-code">${esc(p.code)}</div><div class="transfer"><div><span>Origen</span><strong>${esc(locationName(p.location))}</strong></div><span class="transfer-arrow" aria-hidden="true">→</span><div><span>Destino</span><strong>${esc(locationName(operation.location))}</strong></div></div><p class="hint">Se trasladará el pallet completo · ${p.ofs.length} OF</p>`}
     <div class="actions"><button class="button primary" data-action="confirm" type="button">${association ? 'Confirmar asociación' : 'Confirmar traslado'}</button><button class="button secondary" data-action="cancel" type="button">Cancelar</button></div></section>`;
 }
+function renderMove() {
+  if (!context.active) return `<section class="card"><span class="eyebrow">PASO 1 DE 2</span><h2>Seleccionar pallet</h2><p class="record-name">Escanea el pallet que quieres mover.</p><div class="section-label">O selecciona uno</div>${palletRows(data.pallets, true)}</section>`;
+  const p = getPallet(data, context.active.code);
+  return `<section class="card"><div class="record-head"><span class="eyebrow">PASO 2 DE 2</span><button class="text-button" type="button" data-action="change-move-pallet">Cambiar pallet</button></div><h2 class="record-code">${esc(p.code)}</h2><p class="record-name">Ubicación actual: ${esc(locationName(p.location))}</p><div class="section-label">Ubicación de destino</div><p class="hint">Escanea su QR o selecciona una ubicación.</p><div class="location-options">${LOCATIONS.map(loc => `<button class="item-row" type="button" data-code="${esc(loc.code)}" ${loc.code === p.location ? 'disabled' : ''}><span><strong>${esc(loc.name)}</strong><small>${esc(loc.code)}</small></span>${loc.code === p.location ? '<span class="count">Actual</span>' : '<span class="chevron" aria-hidden="true">›</span>'}</button>`).join('')}</div></section>`;
+}
 function render() {
   let html = '';
   if (context.pending) html = renderPending(context.pending);
+  else if (context.intent === 'move') html = renderMove();
   else if (context.active?.type === 'of') {
     const code = context.active.code;
-    html = `<section class="card"><div class="record-head"><span class="eyebrow">ORDEN DE FABRICACIÓN</span><span class="badge">En curso</span></div><h2 class="record-code">${esc(code)}</h2><p class="record-name">${esc(ofName(code))}</p><div class="section-label">Pallets registrados</div>${palletRows(palletsForOF(data, code))}</section>
+    html = `<section class="card"><div class="record-head"><span class="eyebrow">ORDEN DE FABRICACIÓN</span><button class="text-button" type="button" data-remove="${esc(code)}">Quitar lectura</button></div><h2 class="record-code">${esc(code)}</h2><p class="record-name">${esc(ofName(code))}</p><div class="section-label">Pallets registrados</div>${palletRows(palletsForOF(data, code))}</section>
       <section class="card next-action"><div class="section-label">ASOCIAR A PALLET · ${context.ofs.length} ${context.ofs.length === 1 ? 'OF' : 'OFs'}</div>${context.ofs.length > 1 ? `<div class="of-chips">${context.ofs.map(of => `<button type="button" data-remove="${esc(of)}" aria-label="Quitar ${esc(of)} de la selección">${esc(of)} <span aria-hidden="true">×</span></button>`).join('')}</div>` : ''}<p>Escanea el pallet de destino.</p><span class="hint">Puedes leer más OFs antes del pallet.</span></section>`;
   } else if (context.active?.type === 'pallet') {
     const p = getPallet(data, context.active.code);
-    html = `<section class="card"><span class="eyebrow">PALLET</span><h2 class="record-code">${esc(p.code)}</h2><div class="location-line"><span aria-hidden="true">⌖</span> ${esc(locationName(p.location))}</div><div class="section-label">Contenido <span class="count">${p.ofs.length} OF</span></div>${p.ofs.length ? p.ofs.map(code => linkRow(code, ofName(code))).join('') : '<p class="empty-line">Pallet vacío</p>'}</section><section class="card next-action"><p>Escanea una OF para asociarla.</p><span class="hint">O una ubicación para trasladar el pallet.</span></section>`;
+    html = `<section class="card"><div class="record-head"><span class="eyebrow">PALLET</span><button class="text-button" type="button" data-action="discard">Quitar lectura</button></div><h2 class="record-code">${esc(p.code)}</h2><div class="location-line"><span aria-hidden="true">⌖</span> ${esc(locationName(p.location))}</div><button class="button primary full" data-action="start-move" type="button">Mover pallet</button><div class="section-label">Contenido <span class="count">${p.ofs.length} OF</span></div>${p.ofs.length ? p.ofs.map(code => linkRow(code, ofName(code))).join('') : '<p class="empty-line">Pallet vacío</p>'}</section><section class="card next-action"><p>Escanea una OF para asociarla.</p><span class="hint">También puedes escanear una ubicación para trasladar el pallet.</span></section>`;
   } else if (context.active?.type === 'location') {
     const loc = context.active.code;
     html = `<section class="card"><span class="eyebrow">UBICACIÓN</span><h2>${esc(locationName(loc))}</h2><p class="record-name">${esc(loc)}</p><div class="section-label">Pallets en esta ubicación</div>${palletRows(data.pallets.filter(p => p.location === loc))}</section><section class="card next-action"><p>Escanea un pallet para traerlo aquí.</p></section>`;
   } else {
-    html = `<section class="card start-card"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 7H7v10M31 7h10v10M7 31v10h10M41 31v10H31M14 14h7v7h-7zM27 14h7v7h-7zM14 27h7v7h-7zM28 27v7h6v-4M27 24h7"/></svg><h2>Escanea una OF o un pallet</h2><p>Sus datos aparecerán aquí.</p></section><section class="card compact"><div class="section-label">Pallets</div>${palletRows(data.pallets)}</section>`;
+    html = `<section class="card start-card"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 7H7v10M31 7h10v10M7 31v10h10M41 31v10H31M14 14h7v7h-7zM27 14h7v7h-7zM14 27h7v7h-7zM28 27v7h6v-4M27 24h7"/></svg><h2>Escanea una OF o un pallet</h2><p>Sus datos aparecerán aquí.</p></section><button class="button secondary full home-move" data-action="start-move" type="button">Mover pallet →</button><section class="card compact"><div class="section-label">Pallets</div>${palletRows(data.pallets)}</section>`;
   }
   $('main').innerHTML = html;
   $('samples').innerHTML = `<div class="sample-section"><h3>OFs</h3>${OFS.map(of => linkRow(of.code, of.name, '', true)).join('')}</div><div class="sample-section"><h3>Pallets</h3>${palletRows(data.pallets, true)}</div><div class="sample-section"><h3>Ubicaciones</h3>${LOCATIONS.map(l => linkRow(l.code, l.name, '', true)).join('')}</div>`;
-  $('reader-code').placeholder = context.pending ? 'Confirma o cancela la operación' : context.ofs.length ? 'Escanea más OFs o un pallet' : context.active?.type === 'pallet' ? 'Escanea una OF o ubicación' : 'OF, pallet o ubicación';
+  $('screen-title').textContent = context.intent === 'move' || context.pending?.type === 'move' ? 'Mover pallet' : context.pending ? 'Asociar OFs' : context.active?.type === 'of' ? 'Orden de fabricación' : context.active?.type === 'pallet' ? 'Detalle del pallet' : context.active?.type === 'location' ? 'Ubicación' : 'Escanear';
+  $('go-back').disabled = !navigation.canGoBack;
+  $('reader-code').placeholder = context.pending ? 'Confirma o cancela la operación' : context.intent === 'move' ? context.active ? 'Escanea una ubicación de destino' : 'Escanea el pallet que quieres mover' : context.ofs.length ? 'Escanea más OFs o un pallet' : context.active?.type === 'pallet' ? 'Escanea una OF o ubicación' : 'OF, pallet o ubicación';
   updateStatus();
 }
 function receive(raw) {
@@ -73,7 +83,7 @@ function receive(raw) {
     const now = Date.now();
     if (lastScan === item.code && now - lastAt < 1000) return true;
     const next = scanCode(context, raw, data);
-    context = next; lastScan = item.code; lastAt = now;
+    context = navigation.visit(next); lastScan = item.code; lastAt = now;
     notice(context.pending ? 'Revisa la operación antes de confirmar.' : `${item.code} · Leído`);
     render();
     return true;
@@ -92,7 +102,8 @@ const reader = createReader({ video: $('camera'), canvas: $('decode-canvas'),
   },
 });
 function closeCamera() { reader.stop(); if ($('scanner').open) $('scanner').close(); focusReader(); }
-function clearContext() { context = emptyContext(); lastScan = ''; collector.clear(); notice(); render(); focusReader(); }
+function clearContext() { context = navigation.home(); lastScan = ''; collector.clear(); notice(); render(); focusReader(); }
+function goBack() { context = navigation.back(); lastScan = ''; collector.clear(); notice(); render(); focusReader(); }
 $('reader-code').addEventListener('input', event => collector.setValue(event.target.value));
 $('reader-code').addEventListener('paste', event => {
   const text = event.clipboardData?.getData('text'); if (text) { event.preventDefault(); collector.setValue(text); }
@@ -110,7 +121,8 @@ document.addEventListener('keydown', event => {
     event.preventDefault(); collector.setValue(collector.value.slice(0, -1));
   }
 }, true);
-$('new-scan').onclick = clearContext;
+$('go-home').onclick = clearContext;
+$('go-back').onclick = goBack;
 $('open-camera').onclick = () => {
   if (context.pending) { notice('Confirma o cancela la operación pendiente.', true); return; }
   collector.clear(); $('scanner').showModal(); updateStatus(); reader.start();
@@ -134,18 +146,25 @@ $('help-button').onclick = () => { collector.clear(); $('help').showModal(); upd
 document.addEventListener('click', event => {
   const button = event.target.closest('button');
   if (button?.dataset.close) { $(button.dataset.close).close(); focusReader(); return; }
-  if (button?.dataset.record) { context = emptyContext(); lastScan = ''; collector.clear(); receive(button.dataset.record); focusReader(); return; }
+  if (button?.dataset.record) {
+    const next = scanCode(emptyContext(), button.dataset.record, data);
+    context = navigation.visit(next); lastScan = ''; collector.clear(); notice(); render(); focusReader(); return;
+  }
   if (button?.dataset.code) { collector.clear(); receive(button.dataset.code); $('sample-data').open = false; focusReader(); return; }
   if (button?.dataset.remove) {
-    context.ofs = context.ofs.filter(code => code !== button.dataset.remove);
-    context.active = context.ofs.length ? { type: 'of', code: context.ofs.at(-1) } : null;
-    render(); focusReader(); return;
+    context = navigation.restart(removeSelectedOF(context, button.dataset.remove));
+    lastScan = ''; collector.clear(); notice('Lectura quitada de la selección.'); render(); focusReader(); return;
   }
-  if (button?.dataset.action === 'cancel') { context = cancelOperation(context); lastScan = ''; notice('Operación cancelada.'); render(); focusReader(); return; }
+  if (button?.dataset.action === 'cancel') { goBack(); notice('Operación cancelada.'); return; }
+  if (button?.dataset.action === 'discard') { goBack(); return; }
+  if (button?.dataset.action === 'start-move' || button?.dataset.action === 'change-move-pallet') {
+    context = navigation.visit(beginMove(button.dataset.action === 'start-move' ? context : emptyContext()));
+    lastScan = ''; collector.clear(); notice(); render(); focusReader(); return;
+  }
   if (button?.dataset.action === 'confirm') {
     try {
       const result = confirmOperation(context, data);
-      const saved = commit(result.data); context = result.context; lastScan = '';
+      const saved = commit(result.data); context = navigation.restart(result.context); lastScan = ''; collector.clear();
       const message = result.operation.type === 'associate' ? `${result.operation.ofs.length} OF asociada${result.operation.ofs.length > 1 ? 's' : ''} a ${result.operation.pallet}.` : `${result.operation.pallet} trasladado a ${locationName(result.operation.location)}.`;
       notice(saved ? message : `${message} Sólo en esta pestaña: el navegador no permite guardar.`, !saved);
       render(); focusReader();

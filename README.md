@@ -8,8 +8,8 @@ Prototipo independiente con datos ficticios. Muestra OFs, contenido de pallets y
 2. Abrir el enlace HTTPS en Safari y mantener esa página activa. El campo `inputmode="none"` recibe teclado externo sin solicitar teclado táctil; se vuelve a enfocar tras lecturas y acciones. Si iOS no admite el enfoque automático, tocar el campo una vez. La página no puede verificar si el Bluetooth está conectado.
 3. Escanear OF/26/0042: muestra producto y pallets. Leer más OFs prepara una selección sin duplicados. Escanear P202600001: propone asociar y requiere confirmar.
 4. Tras confirmar se muestra el pallet y su contenido. Escanear LOC-CALIDAD: propone el traslado completo y requiere confirmar. Las OFs que también estén en otros pallets conservan esos enlaces.
-5. También funciona en orden pallet → OF o ubicación → pallet. Pallet → pallet sólo cambia la consulta. «Nueva lectura» borra el contexto y las operaciones sin confirmar, no las asociaciones guardadas.
-6. Para consultar algo sin iniciar una propuesta desde el registro activo, pulsar «Nueva lectura». «Datos de prueba» permite simular las lecturas pulsando las etiquetas.
+5. También funciona en orden pallet → OF o ubicación → pallet. Pallet → pallet sólo cambia la consulta. «Inicio» descarta la selección y las propuestas sin confirmar. «Volver» recupera el paso anterior; tras guardar vuelve a Inicio, sin deshacer datos confirmados.
+6. Para consultar algo sin iniciar una propuesta desde el registro activo, pulsar «Inicio». «Datos de prueba» permite simular las lecturas pulsando las etiquetas.
 
 El colector acepta eventos de texto de iOS y Enter/Tab, filtra CRLF y, si no hay sufijo, sólo resuelve un código conocido tras 600 ms de pausa. Ante códigos desconocidos no borra la selección. La repetición inmediata del mismo código se ignora durante 1 segundo. Mientras existe propuesta, se debe confirmar o cancelar antes de leer más. Sólo el botón de confirmación aplica cambios; el Enter del lector no lo activa.
 
@@ -23,10 +23,13 @@ La compatibilidad depende de que el lector envíe el texto correcto como teclado
 
 - `dist/domain.mjs`: datos ficticios y operaciones OF ↔ pallet; modelo y almacenamiento conservados.
 - `dist/workflow.mjs`: decide qué consultar o proponer según los códigos sucesivos. Confirmación separada de lectura.
+- `dist/navigation.mjs`: historial de pasos sin guardar; Volver e Inicio. Al confirmar se limpia el historial anterior para no restaurar propuestas antiguas.
 - `dist/hid.mjs`: colector de texto del lector, terminadores y control de parciales.
 - `dist/app.mjs`: interfaz, enfoque y conexiones entre lector, cámara y operaciones.
 - `dist/camera.mjs`: lectura de cámara con jsQR.
 - `dist/brand/`: tokens y assets originales CMP, usados sin alterar el logotipo.
+
+«Mover pallet» está visible en Inicio y en la ficha del pallet. Permite escanear o elegir el pallet, después escanear o elegir ubicación y confirmar. «Quitar lectura» elimina una OF de la selección (incluso si sólo hay una) o vuelve desde la ficha de un pallet; no desasocia contenido ya guardado.
 
 La demo abarca consulta, asociación y localización. OTs, PIN e impresión portátil pertenecen al diseño completo anterior y no se implementan aquí. Reiniciar sólo afecta a datos de prueba del navegador. Si el almacenamiento falla, el cambio queda en memoria y se indica.
 
@@ -38,7 +41,7 @@ Se incorpora `tokens/cmp.css` y el logotipo negativo, favicon e icono de aplicac
 
 `node --test tests/*.test.mjs`
 
-Incluye decodificación real de todos los QR y versiones giradas, conservación de asociaciones y ubicaciones derivadas, estados de escaneo en ambos órdenes, cancelación y bloqueo de propuestas, entrada HID con/sin sufijo, CRLF y ciclo de vida de cámara.
+Incluye decodificación real de todos los QR y versiones giradas, conservación de asociaciones y ubicaciones derivadas, estados de escaneo en ambos órdenes, cancelación y bloqueo de propuestas, navegación atrás e Inicio, retirada de lecturas, traslado guiado, entrada HID con/sin sufijo, CRLF y ciclo de vida de cámara.
 
 Sin build ni dependencias remotas. Para servir localmente: `python3 -m http.server 4183 --directory dist`. La cámara móvil exige HTTPS; para probar físicamente se utiliza el enlace publicado. El estado privado del navegador no se sube a la publicación.
 

@@ -14,7 +14,8 @@
 <body>
   <header class="cmp-header"><div class="header-inner"><img class="cmp-logo" src="brand/cmp-logo-negativo.png" alt="CMP"><span class="cmp-title">Pallets</span><span class="demo-badge">DEMO</span></div></header>
   <div class="shell">
-    <div class="page-title"><h1>Escanear</h1><button class="text-button" type="button" id="new-scan">Nueva lectura</button></div>
+    <nav class="screen-navigation" aria-label="Navegación"><button class="button secondary" type="button" id="go-back" disabled>← Volver</button><button class="button secondary" type="button" id="go-home">Inicio</button></nav>
+    <div class="page-title"><h1 id="screen-title">Escanear</h1></div>
     <section class="scan-console" aria-label="Entrada del lector QR">
       <div class="reader-status"><span class="status-dot" aria-hidden="true"></span><span id="reader-status">Página preparada para el lector</span></div>
       <form id="scan-form"><label class="sr-only" for="reader-code">Código de OF, pallet o ubicación</label><div class="scan-row"><span class="scan-icon" aria-hidden="true">⌗</span><input id="reader-code" type="text" inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="OF, pallet o ubicación" aria-describedby="reader-status" autofocus><button class="icon-button" type="submit" aria-label="Leer código">↵</button></div></form>
