@@ -52,3 +52,9 @@ La prueba con iPhone físico y lector emparejado debe realizarse en ese disposit
 ## Dependencias
 
 Distribuciones npm jsqr 1.4.0 (Apache-2.0) y qrcode-generator 1.4.4 (MIT), verificadas contra integridad del registro. Licencias en `dist/vendor/`. Sin CDN en ejecución.
+
+## Vista de trabajo y versión anterior
+
+Vista centrada con iconos SVG locales grandes y etiquetas, acceso directo a cámara, asociación de OFs y traslado de pallets. «Asociar OFs» prepara la pantalla para la misma secuencia de lectura existente. El catálogo de pallets está plegado en Inicio y la ayuda, etiquetas y datos de prueba se agrupan en «Opciones de prueba». Los controles de Volver, Inicio y Quitar continúan visibles en sus pantallas. No cambia la clave de almacenamiento ni las operaciones de negocio.
+
+La versión anterior (4, commit `c1de498`) permanece guardada en Sites y tiene una copia fuente independiente. Identificadores y recuperación documentados en [docs/versiones.md](docs/versiones.md). Iconos en `dist/icons.mjs` y ajustes de esta vista en `dist/workspace.css`; los tokens CMP originales se conservan.

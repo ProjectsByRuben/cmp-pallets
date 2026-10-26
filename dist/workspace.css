@@ -1,0 +1,74 @@
+/* Task-focused workspace; CMP tokens and business flows stay shared. */
+.app-view .shell { max-width: 600px; padding-top: 16px; }
+.app-view .header-inner { max-width: 560px; }
+.app-view .screen-navigation { margin-bottom: 12px; }
+.app-view .screen-navigation .button { gap: 8px; min-height: 48px; padding: 10px 14px; }
+.app-view .page-title { justify-content: center; margin-bottom: 16px; }
+.app-view h1 { font-size: 21px; text-align: center; }
+.app-view .ui-icon { display: block; width: 26px; height: 26px; flex-shrink: 0; }
+.app-view [data-icon] { display: inline-flex; align-items: center; justify-content: center; }
+.app-view .scan-console { padding: 16px; border-radius: 10px; }
+.app-view .reader-status { justify-content: center; font-size: 12px; margin-bottom: 14px; }
+.app-view .scan-row { min-height: 56px; background: #FCFCFD; }
+.app-view .scan-icon { display: flex; padding: 0 12px; color: var(--cmp-gray-600); }
+.app-view .scan-icon .ui-icon { width: 32px; height: 32px; }
+.app-view .scan-row input { font-size: 16px; padding: 16px 0; }
+.app-view .icon-button { display: grid; place-items: center; min-height: 54px; }
+.app-view .reader-tools { display: grid; grid-template-columns: 1.15fr 1fr; gap: 10px; margin-top: 12px; }
+.app-view .reader-tools .button { min-height: 52px; padding: 10px 8px; gap: 10px; font-size: 14px; }
+.app-view .camera-button { border: 1px solid var(--cmp-border); background: #fff; color: var(--cmp-text); }
+.app-view .camera-button .ui-icon { width: 29px; height: 29px; color: var(--cmp-primary); }
+.app-view .camera-button:hover { background: var(--cmp-primary-soft); }
+.app-view .workspace-hint { text-align: center; font-size: 13px; color: var(--muted); margin: 4px 0 16px; }
+.app-view .task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.app-view .task-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 18px 10px; min-height: 124px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: #fff; }
+.app-view .task-tile:hover { border-color: var(--cmp-primary); background: #FFFCFC; }
+.app-view .task-tile strong { font-size: 15px; font-weight: 600; }
+.app-view .task-icon { color: var(--cmp-primary); }
+.app-view .task-icon .ui-icon { width: 40px; height: 40px; }
+.app-view .pallet-catalog { background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+.app-view .pallet-catalog > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; min-height: 60px; padding: 12px 16px; font-size: 14px; font-weight: 600; }
+.app-view .pallet-catalog > summary::-webkit-details-marker { display: none; }
+.app-view .pallet-catalog > summary::after { content: '+'; color: var(--muted); font-size: 24px; font-weight: 400; margin-left: auto; }
+.app-view .pallet-catalog[open] > summary::after { content: '−'; }
+.app-view .pallet-catalog > div { padding: 0 16px 4px; }
+.app-view .pallet-catalog > summary > .ui-icon { color: var(--cmp-gray-600); }
+.app-view .utility-menu { margin-top: 24px; border-top: 1px solid var(--line); color: var(--muted); }
+.app-view .utility-menu > summary { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 0; min-height: 48px; font-size: 12px; cursor: pointer; }
+.app-view .utility-menu > summary > [data-icon] .ui-icon { width: 21px; height: 21px; }
+.app-view .sample-data { margin-top: 0; }
+.app-view .demo-note { text-align: center; color: var(--muted); font-size: 10px; margin-top: 10px; line-height: 1.5; }
+.app-view .record-kind { display: inline-flex; align-items: center; gap: 9px; font-size: 10px; letter-spacing: .6px; color: var(--muted); font-weight: 600; }
+.app-view .record-kind .ui-icon { width: 28px; height: 28px; color: var(--cmp-gray-600); }
+.app-view .record-head { gap: 8px; }
+.app-view .record-head .text-button { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.app-view .record-head .text-button .ui-icon { width: 22px; height: 22px; }
+.app-view .record-code { margin-top: 12px; font-size: 24px; }
+.app-view .location-line .ui-icon { width: 24px; height: 24px; }
+.app-view .chevron .ui-icon { width: 20px; height: 20px; }
+.app-view .button { min-height: 52px; }
+.app-view .selected-pallet { min-height: 76px; }
+.app-view .selected-pallet .text-button { display: inline-flex; align-items: center; gap: 4px; padding: 8px 0 8px 8px; }
+.app-view .selected-pallet .text-button .ui-icon { width: 22px; height: 22px; }
+.app-view .feature-icon { display: flex; align-items: center; justify-content: center; color: var(--cmp-primary); }
+.app-view .feature-icon .ui-icon { width: 40px; height: 40px; }
+.app-view .feature-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.app-view .feature-heading h2 { margin: 0; font-size: 19px; }
+.app-view .proposal > .feature-icon { margin: 16px 0 8px; }
+.app-view .proposal > h2 { text-align: center; }
+.app-view .proposal > .eyebrow { display: block; text-align: center; }
+.app-view .task-ready { text-align: center; padding: 28px 20px; }
+.app-view .task-ready .feature-icon { margin-bottom: 16px; }
+.app-view .task-ready h2 { font-size: 20px; }
+.app-view .task-ready p { color: var(--muted); margin-top: 8px; font-size: 14px; }
+.app-view .close-button { display: grid; place-items: center; }
+@media (max-width: 360px) {
+  .app-view .shell { padding-left: 12px; padding-right: 12px; }
+  .app-view .card { padding: 16px; }
+  .app-view .task-tile strong { font-size: 14px; }
+  .app-view .record-kind { font-size: 9px; gap: 6px; letter-spacing: .3px; }
+  .app-view .record-kind .ui-icon { width: 24px; height: 24px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .app-view .task-tile, .app-view .camera-button { transition: background-color .15s, border-color .15s; }
+}

@@ -3,6 +3,9 @@ import { createReader } from './camera.mjs';
 import { emptyContext, scanCode, confirmOperation, beginMove, removeSelectedOF, removeSelectedPallet } from './workflow.mjs';
 import { createNavigation } from './navigation.mjs';
 import { createHidCollector } from './hid.mjs';
+import { icon } from './icons.mjs';
+
+for (const element of document.querySelectorAll('[data-icon]')) element.innerHTML = icon(element.dataset.icon);
 
 const $ = id => document.getElementById(id);
 const esc = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -31,12 +34,12 @@ function hasDialog() { return !!document.querySelector('dialog[open]'); }
 function focusReader() { if (!hasDialog() && !document.hidden) $('reader-code').focus({ preventScroll: true }); updateStatus(); }
 function updateStatus() {
   const paused = document.hidden || !document.hasFocus();
-  const status = paused ? 'Activa esta página para leer' : hasDialog() ? 'Lector en pausa' : 'Página preparada para el lector';
+  const status = paused ? 'Activa esta página para leer' : hasDialog() ? 'Lector en pausa' : 'Preparado para escanear';
   $('reader-status').textContent = status;
   document.querySelector('.reader-status').classList.toggle('paused', paused || hasDialog());
 }
 function linkRow(code, title, badge = '', simulateScan = false) {
-  return `<button type="button" class="item-row" ${simulateScan ? 'data-code' : 'data-record'}="${esc(code)}"><span><strong>${esc(code)}</strong><small>${esc(title)}</small></span>${badge ? `<span class="count">${esc(badge)}</span>` : ''}<span class="chevron" aria-hidden="true">›</span></button>`;
+  return `<button type="button" class="item-row" ${simulateScan ? 'data-code' : 'data-record'}="${esc(code)}"><span><strong>${esc(code)}</strong><small>${esc(title)}</small></span>${badge ? `<span class="count">${esc(badge)}</span>` : ''}<span class="chevron">${icon('chevron')}</span></button>`;
 }
 function palletRows(pallets, simulateScan = false) {
   return pallets.length ? pallets.map(p => linkRow(p.code, locationName(p.location), `${p.ofs.length} OF`, simulateScan)).join('') : '<p class="empty-line">Sin pallet registrado</p>';
@@ -44,7 +47,7 @@ function palletRows(pallets, simulateScan = false) {
 function selectedPalletRows(codes, destination = null) {
   return codes.map(code => {
     const p = getPallet(data, code);
-    return `<div class="selected-pallet"><div><strong>${esc(code)}</strong><small>${esc(locationName(p.location))}${destination === p.location ? ' · Ya está en destino' : ''}</small></div><button class="text-button" type="button" data-remove-pallet="${esc(code)}" aria-label="Quitar ${esc(code)} de la selección">Quitar</button></div>`;
+    return `<div class="selected-pallet"><div><strong>${esc(code)}</strong><small>${esc(locationName(p.location))}${destination === p.location ? ' · Ya está en destino' : ''}</small></div><button class="text-button" type="button" data-remove-pallet="${esc(code)}" aria-label="Quitar ${esc(code)} de la selección">${icon('close')}<span>Quitar</span></button></div>`;
   }).join('');
 }
 function renderPending(operation) {
@@ -57,7 +60,7 @@ function renderPending(operation) {
     const changed = operation.pallets.filter(code => getPallet(data, code).location !== operation.location).length;
     detail = `<div class="section-label">${operation.pallets.length} ${operation.pallets.length === 1 ? 'pallet seleccionado' : 'pallets seleccionados'}</div>${selectedPalletRows(operation.pallets, operation.location)}<div class="destination"><span>UBICACIÓN DE DESTINO</span><strong>${esc(locationName(operation.location))}</strong></div><p class="hint">${changed} ${changed === 1 ? 'pallet cambiará' : 'pallets cambiarán'} de ubicación. Se conserva todo el contenido.</p>`;
   }
-  return `<section class="card proposal" aria-labelledby="proposal-title"><span class="eyebrow">PENDIENTE DE CONFIRMAR</span><h2 id="proposal-title">${association ? 'Asociar a pallet' : 'Trasladar pallets'}</h2>${detail}<div class="actions"><button class="button primary" data-action="confirm" type="button">${association ? 'Confirmar asociación' : 'Confirmar traslado'}</button><button class="button secondary" data-action="cancel" type="button">Cancelar</button></div></section>`;
+  return `<section class="card proposal" aria-labelledby="proposal-title"><span class="eyebrow">PENDIENTE DE CONFIRMAR</span><div class="feature-icon">${icon(association ? 'associate' : 'move')}</div><h2 id="proposal-title">${association ? 'Asociar a pallet' : 'Trasladar pallets'}</h2>${detail}<div class="actions"><button class="button primary" data-action="confirm" type="button">${icon('check')}${association ? 'Confirmar asociación' : 'Confirmar traslado'}</button><button class="button secondary" data-action="cancel" type="button">${icon('close')}Cancelar</button></div></section>`;
 }
 function renderMove() {
   const codes = context.pallets;
@@ -65,9 +68,9 @@ function renderMove() {
   const selected = codes.length ? `<div class="section-label">${codes.length} ${codes.length === 1 ? 'pallet seleccionado' : 'pallets seleccionados'}</div>${selectedPalletRows(codes)}` : '<p class="record-name">Escanea uno o varios pallets.</p>';
   const destinations = codes.length ? `<div class="section-label">Ubicación de destino</div><p class="hint">Escanea su QR o selecciona una ubicación.</p><div class="location-options">${LOCATIONS.map(loc => {
     const allThere = codes.every(code => getPallet(data, code).location === loc.code);
-    return `<button class="item-row" type="button" data-code="${esc(loc.code)}" ${allThere ? 'disabled' : ''}><span><strong>${esc(loc.name)}</strong><small>${esc(loc.code)}</small></span>${allThere ? `<span class="count">${codes.length === 1 ? 'Actual' : 'Todos aquí'}</span>` : '<span class="chevron" aria-hidden="true">›</span>'}</button>`;
+    return `<button class="item-row" type="button" data-code="${esc(loc.code)}" ${allThere ? 'disabled' : ''}><span><strong>${esc(loc.name)}</strong><small>${esc(loc.code)}</small></span>${allThere ? `<span class="count">${codes.length === 1 ? 'Actual' : 'Todos aquí'}</span>` : `<span class="chevron">${icon('chevron')}</span>`}</button>`;
   }).join('')}</div>` : '';
-  return `<section class="card"><span class="eyebrow">TRASLADO A UNA MISMA UBICACIÓN</span><h2>Seleccionar pallets</h2>${selected}${codes.length ? '<p class="hint selection-hint">Puedes escanear más pallets antes de la ubicación.</p>' : ''}${destinations}</section>${available.length ? `<section class="card compact"><div class="section-label">${codes.length ? 'Añadir pallet' : 'O selecciona pallets'}</div>${palletRows(available, true)}</section>` : ''}`;
+  return `<section class="card"><div class="feature-heading"><span class="feature-icon">${icon('move')}</span><h2>Seleccionar pallets</h2></div>${selected}${codes.length ? '<p class="hint selection-hint">Puedes escanear más pallets antes de la ubicación.</p>' : ''}${destinations}</section>${available.length ? `<section class="card compact"><div class="section-label">${codes.length ? 'Añadir pallet' : 'O selecciona pallets'}</div>${palletRows(available, true)}</section>` : ''}`;
 }
 function render() {
   let html = '';
@@ -75,20 +78,22 @@ function render() {
   else if (context.intent === 'move') html = renderMove();
   else if (context.active?.type === 'of') {
     const code = context.active.code;
-    html = `<section class="card"><div class="record-head"><span class="eyebrow">ORDEN DE FABRICACIÓN</span><button class="text-button" type="button" data-remove="${esc(code)}">Quitar lectura</button></div><h2 class="record-code">${esc(code)}</h2><p class="record-name">${esc(ofName(code))}</p><div class="section-label">Pallets registrados</div>${palletRows(palletsForOF(data, code))}</section>
+    html = `<section class="card"><div class="record-head"><span class="record-kind">${icon('order')}<span>ORDEN DE FABRICACIÓN</span></span><button class="text-button" type="button" data-remove="${esc(code)}">${icon('close')}<span>Quitar</span></button></div><h2 class="record-code">${esc(code)}</h2><p class="record-name">${esc(ofName(code))}</p><div class="section-label">Pallets registrados</div>${palletRows(palletsForOF(data, code))}</section>
       <section class="card next-action"><div class="section-label">ASOCIAR A PALLET · ${context.ofs.length} ${context.ofs.length === 1 ? 'OF' : 'OFs'}</div>${context.ofs.length > 1 ? `<div class="of-chips">${context.ofs.map(of => `<button type="button" data-remove="${esc(of)}" aria-label="Quitar ${esc(of)} de la selección">${esc(of)} <span aria-hidden="true">×</span></button>`).join('')}</div>` : ''}<p>Escanea el pallet de destino.</p><span class="hint">Puedes leer más OFs antes del pallet.</span></section>`;
   } else if (context.active?.type === 'pallet') {
     const p = getPallet(data, context.active.code);
-    html = `<section class="card"><div class="record-head"><span class="eyebrow">PALLET</span><button class="text-button" type="button" data-remove-pallet="${esc(p.code)}">Quitar lectura</button></div><h2 class="record-code">${esc(p.code)}</h2><div class="location-line"><span aria-hidden="true">⌖</span> ${esc(locationName(p.location))}</div><button class="button primary full" data-action="start-move" type="button">Mover pallet</button><div class="section-label">Contenido <span class="count">${p.ofs.length} OF</span></div>${p.ofs.length ? p.ofs.map(code => linkRow(code, ofName(code))).join('') : '<p class="empty-line">Pallet vacío</p>'}</section><section class="card next-action"><p>Escanea una OF para asociarla.</p><span class="hint">Escanea más pallets y después una ubicación para moverlos juntos.</span></section>`;
+    html = `<section class="card"><div class="record-head"><span class="record-kind">${icon('pallet')}<span>PALLET</span></span><button class="text-button" type="button" data-remove-pallet="${esc(p.code)}">${icon('close')}<span>Quitar</span></button></div><h2 class="record-code">${esc(p.code)}</h2><div class="location-line">${icon('location')} ${esc(locationName(p.location))}</div><button class="button primary full" data-action="start-move" type="button">${icon('move')}Mover pallet</button><div class="section-label">Contenido <span class="count">${p.ofs.length} OF</span></div>${p.ofs.length ? p.ofs.map(code => linkRow(code, ofName(code))).join('') : '<p class="empty-line">Pallet vacío</p>'}</section><section class="card next-action"><p>Escanea una OF para asociarla.</p><span class="hint">Escanea más pallets y después una ubicación para moverlos juntos.</span></section>`;
   } else if (context.active?.type === 'location') {
     const loc = context.active.code;
-    html = `<section class="card"><span class="eyebrow">UBICACIÓN</span><h2>${esc(locationName(loc))}</h2><p class="record-name">${esc(loc)}</p><div class="section-label">Pallets en esta ubicación</div>${palletRows(data.pallets.filter(p => p.location === loc))}</section><section class="card next-action"><p>Escanea un pallet para traerlo aquí.</p></section>`;
+    html = `<section class="card"><span class="record-kind">${icon('location')}<span>UBICACIÓN</span></span><h2>${esc(locationName(loc))}</h2><p class="record-name">${esc(loc)}</p><div class="section-label">Pallets en esta ubicación</div>${palletRows(data.pallets.filter(p => p.location === loc))}</section><section class="card next-action"><p>Escanea un pallet para traerlo aquí.</p></section>`;
   } else {
-    html = `<section class="card start-card"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 7H7v10M31 7h10v10M7 31v10h10M41 31v10H31M14 14h7v7h-7zM27 14h7v7h-7zM14 27h7v7h-7zM28 27v7h6v-4M27 24h7"/></svg><h2>Escanea una OF o un pallet</h2><p>Sus datos aparecerán aquí.</p></section><button class="button secondary full home-move" data-action="start-move" type="button">Mover pallets →</button><section class="card compact"><div class="section-label">Pallets</div>${palletRows(data.pallets)}</section>`;
+    html = context.intent === 'associate'
+      ? `<section class="card task-ready"><div class="feature-icon">${icon('associate')}</div><h2>Escanea las OFs</h2><p>Después, escanea el pallet.</p></section>`
+      : `<p class="workspace-hint">Escanea una etiqueta para ver sus detalles.</p><div class="task-grid"><button class="task-tile" type="button" data-action="start-associate"><span class="task-icon">${icon('associate')}</span><strong>Asociar OFs</strong></button><button class="task-tile" type="button" data-action="start-move"><span class="task-icon">${icon('move')}</span><strong>Mover pallets</strong></button></div><details class="pallet-catalog"><summary>${icon('pallet')}<span>Pallets registrados</span><span class="count">${data.pallets.length}</span></summary><div>${palletRows(data.pallets)}</div></details>`;
   }
   $('main').innerHTML = html;
   $('samples').innerHTML = `<div class="sample-section"><h3>OFs</h3>${OFS.map(of => linkRow(of.code, of.name, '', true)).join('')}</div><div class="sample-section"><h3>Pallets</h3>${palletRows(data.pallets, true)}</div><div class="sample-section"><h3>Ubicaciones</h3>${LOCATIONS.map(l => linkRow(l.code, l.name, '', true)).join('')}</div>`;
-  $('screen-title').textContent = context.intent === 'move' || context.pending?.type === 'move' ? 'Mover pallets' : context.pending ? 'Asociar OFs' : context.active?.type === 'of' ? 'Orden de fabricación' : context.active?.type === 'pallet' ? 'Detalle del pallet' : context.active?.type === 'location' ? 'Ubicación' : 'Escanear';
+  $('screen-title').textContent = context.intent === 'move' || context.pending?.type === 'move' ? 'Mover pallets' : context.pending || context.intent === 'associate' ? 'Asociar OFs' : context.active?.type === 'of' ? 'Orden de fabricación' : context.active?.type === 'pallet' ? 'Detalle del pallet' : context.active?.type === 'location' ? 'Ubicación' : 'Escanear';
   $('go-back').disabled = !navigation.canGoBack;
   $('reader-code').placeholder = context.pending ? 'Confirma o cancela la operación' : context.intent === 'move' ? context.pallets.length ? 'Más pallets o ubicación de destino' : 'Escanea los pallets que quieres mover' : context.ofs.length ? 'Escanea más OFs o un pallet' : context.active?.type === 'pallet' ? 'Escanea otro pallet, OF o ubicación' : 'OF, pallet o ubicación';
   updateStatus();
@@ -176,6 +181,10 @@ document.addEventListener('click', event => {
     lastScan = ''; collector.clear(); notice('Lectura quitada de la selección.'); render(); focusReader(); return;
   }
   if (button?.dataset.action === 'cancel') { goBack(); notice('Operación cancelada.'); return; }
+  if (button?.dataset.action === 'start-associate') {
+    context = navigation.visit({ ...emptyContext(), intent: 'associate' });
+    lastScan = ''; collector.clear(); notice(); render(); focusReader(); return;
+  }
   if (button?.dataset.action === 'start-move') {
     context = navigation.visit(beginMove(context));
     lastScan = ''; collector.clear(); notice(); render(); focusReader(); return;

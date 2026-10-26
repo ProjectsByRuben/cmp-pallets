@@ -10,29 +10,33 @@
   <link rel="apple-touch-icon" href="brand/cmp-app-icono-blanco-512.png">
   <link rel="stylesheet" href="brand/cmp.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="workspace.css">
 </head>
-<body>
+<body class="app-view">
   <header class="cmp-header"><div class="header-inner"><img class="cmp-logo" src="brand/cmp-logo-negativo.png" alt="CMP"><span class="cmp-title">Pallets</span><span class="demo-badge">DEMO</span></div></header>
   <div class="shell">
-    <nav class="screen-navigation" aria-label="Navegación"><button class="button secondary" type="button" id="go-back" disabled>← Volver</button><button class="button secondary" type="button" id="go-home">Inicio</button></nav>
+    <nav class="screen-navigation" aria-label="Navegación"><button class="button secondary" type="button" id="go-back" disabled><span data-icon="back"></span><span>Volver</span></button><button class="button secondary" type="button" id="go-home"><span data-icon="home"></span><span>Inicio</span></button></nav>
     <div class="page-title"><h1 id="screen-title">Escanear</h1></div>
     <section class="scan-console" aria-label="Entrada del lector QR">
-      <div class="reader-status"><span class="status-dot" aria-hidden="true"></span><span id="reader-status">Página preparada para el lector</span></div>
-      <form id="scan-form"><label class="sr-only" for="reader-code">Código de OF, pallet o ubicación</label><div class="scan-row"><span class="scan-icon" aria-hidden="true">⌗</span><input id="reader-code" type="text" inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="OF, pallet o ubicación" aria-describedby="reader-status" autofocus><button class="icon-button" type="submit" aria-label="Leer código">↵</button></div></form>
-      <div class="reader-tools"><button class="text-button" type="button" id="open-camera">Usar cámara</button><button class="text-button" type="button" id="open-manual">Escribir código</button></div>
+      <div class="reader-status"><span class="status-dot" aria-hidden="true"></span><span id="reader-status">Preparado para escanear</span></div>
+      <form id="scan-form"><label class="sr-only" for="reader-code">Código de OF, pallet o ubicación</label><div class="scan-row"><span class="scan-icon" data-icon="scan" aria-hidden="true"></span><input id="reader-code" type="text" inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="OF, pallet o ubicación" aria-describedby="reader-status" autofocus><button class="icon-button" type="submit" aria-label="Leer código"><span data-icon="arrow"></span></button></div></form>
+      <div class="reader-tools"><button class="button camera-button" type="button" id="open-camera"><span data-icon="camera"></span><span>Cámara</span></button><button class="button secondary" type="button" id="open-manual"><span data-icon="keyboard"></span><span>Escribir</span></button></div>
     </section>
     <p class="notice" id="notice" role="status" aria-live="polite" hidden></p>
     <main id="main"></main>
-    <details class="sample-data" id="sample-data"><summary>Datos de prueba</summary><div id="samples"></div></details>
-    <footer class="footer"><a href="codigos.html" target="_blank" rel="noopener">Etiquetas QR ↗</a><button type="button" class="text-button" id="help-button">Configurar lector</button><button type="button" class="text-button" id="reset">Reiniciar</button><p>Demo local · Datos ficticios · Sin conexión a Odoo</p></footer>
+    <details class="utility-menu"><summary><span data-icon="settings"></span><span>Opciones de prueba</span></summary>
+      <details class="sample-data" id="sample-data"><summary>Datos de prueba</summary><div id="samples"></div></details>
+      <div class="footer"><a href="codigos.html" target="_blank" rel="noopener">Etiquetas QR ↗</a><button type="button" class="text-button" id="help-button">Configurar lector</button><button type="button" class="text-button" id="reset">Reiniciar</button></div>
+    </details>
+    <footer class="demo-note">Demo · Datos ficticios · Sin conexión a Odoo</footer>
   </div>
   <dialog id="scanner" aria-labelledby="scanner-title">
-    <div class="dialog-head"><h2 id="scanner-title">Leer QR con cámara</h2><button type="button" class="close-button" id="close-scanner" aria-label="Cerrar cámara">×</button></div>
+    <div class="dialog-head"><h2 id="scanner-title">Leer QR con cámara</h2><button type="button" class="close-button" id="close-scanner" aria-label="Cerrar cámara"><span data-icon="close"></span></button></div>
     <div class="camera-frame"><video id="camera" autoplay muted playsinline webkit-playsinline aria-label="Vista de la cámara trasera"></video><div class="camera-guide" aria-hidden="true"></div></div>
     <p id="camera-status" role="status" aria-live="polite">Abriendo cámara…</p><button class="button secondary full" type="button" id="retry-camera">Reintentar</button>
   </dialog>
-  <dialog id="manual-dialog" aria-labelledby="manual-title"><div class="dialog-head"><h2 id="manual-title">Introducir código</h2><button class="close-button" type="button" data-close="manual-dialog" aria-label="Cerrar">×</button></div><form id="manual-form"><label for="manual-code">OF, pallet o ubicación</label><input id="manual-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="OF/26/0042"><button type="submit" class="button primary full">Leer código</button></form></dialog>
-  <dialog id="help" aria-labelledby="help-title"><div class="dialog-head"><h2 id="help-title">Lector Bluetooth</h2><button class="close-button" type="button" data-close="help" aria-label="Cerrar ayuda">×</button></div><ol class="help-list"><li>Empareja el Eyoyo con el iPhone desde Ajustes → Bluetooth.</li><li>Configura el lector en <strong>modo teclado HID</strong>, envío inmediato y sufijo <strong>Enter</strong> (o Tab), siguiendo su manual.</li><li>Vuelve a esta página y escanea una etiqueta. No necesitas pulsar «Escanear».</li></ol><p class="hint">La página debe estar visible y activa en Safari. Si no recibe texto, toca el campo del lector una vez. «Página preparada» no verifica la conexión Bluetooth.</p><p class="hint">Si aparecen caracteres distintos, revisa el idioma de teclado del lector y del iPhone. Usa sólo los QR de esta demo.</p></dialog>
+  <dialog id="manual-dialog" aria-labelledby="manual-title"><div class="dialog-head"><h2 id="manual-title">Introducir código</h2><button class="close-button" type="button" data-close="manual-dialog" aria-label="Cerrar"><span data-icon="close"></span></button></div><form id="manual-form"><label for="manual-code">OF, pallet o ubicación</label><input id="manual-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="OF/26/0042"><button type="submit" class="button primary full">Leer código</button></form></dialog>
+  <dialog id="help" aria-labelledby="help-title"><div class="dialog-head"><h2 id="help-title">Lector Bluetooth</h2><button class="close-button" type="button" data-close="help" aria-label="Cerrar ayuda"><span data-icon="close"></span></button></div><ol class="help-list"><li>Empareja el Eyoyo con el iPhone desde Ajustes → Bluetooth.</li><li>Configura el lector en <strong>modo teclado HID</strong>, envío inmediato y sufijo <strong>Enter</strong> (o Tab), siguiendo su manual.</li><li>Vuelve a esta página y escanea una etiqueta. No necesitas pulsar «Escanear».</li></ol><p class="hint">La página debe estar visible y activa en Safari. Si no recibe texto, toca el campo del lector una vez. «Preparado para escanear» no verifica la conexión Bluetooth.</p><p class="hint">Si aparecen caracteres distintos, revisa el idioma de teclado del lector y del iPhone. Usa sólo los QR de esta demo.</p></dialog>
   <canvas id="decode-canvas" hidden></canvas>
   <script src="vendor/jsqr.js"></script>
   <script type="module" src="app.mjs"></script>
