@@ -77,10 +77,6 @@ export function confirmOperation(context, data) {
   const nextData = operation.type === 'associate'
     ? addToPallet(data, operation.ofs, operation.pallet)
     : movePallets(data, operation.pallets, operation.location);
-  const code = operation.type === 'associate' ? operation.pallet : operation.pallets[0];
-  const nextContext = operation.type === 'move' && operation.pallets.length > 1
-    ? { ...emptyContext(), active: { type: 'location', code: operation.location } }
-    : { ...emptyContext(), active: { type: 'pallet', code }, pallets: [code] };
-  return { data: nextData, context: nextContext, operation };
+  return { data: nextData, context: emptyContext(), operation };
 }
 export function cancelOperation(context) { return { ...context, pending: null }; }

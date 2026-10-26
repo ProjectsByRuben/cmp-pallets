@@ -14,9 +14,7 @@ test('OF → pallet prepara una asociación sin guardar; confirmar conserva los 
   assert.equal(getPallet(data, 'P202600003').ofs.length, 0);
   const result = confirmOperation(ctx, data);
   assert.equal(palletsForOF(result.data, 'OF-101').length, 3);
-  assert.equal(result.context.active.code, 'P202600003');
-  assert.equal(result.context.pending, null);
-  assert.deepEqual(result.context.ofs, []);
+  assert.deepEqual(result.context, emptyContext());
   assert.equal(getPallet(data, 'P202600003').ofs.length, 0);
 });
 test('Pallet → OF prepara la misma asociación', () => {

@@ -19,7 +19,7 @@ test('Dos pallets → ubicación prepara un solo traslado, tanto desde Inicio co
     assert.equal(getPallet(result.data, 'P202600002').location, 'LOC-CALIDAD');
     assert.equal(result.data.history.length, 1);
     assert.deepEqual(palletsForOF(result.data, 'OF-101').map(p => p.location), ['LOC-CALIDAD', 'LOC-CALIDAD']);
-    assert.deepEqual(result.context.active, { type: 'location', code: 'LOC-CALIDAD' });
+    assert.deepEqual(result.context, emptyContext());
     assert.equal(validateData(result.data), true);
   }
 });
@@ -56,7 +56,7 @@ test('Quitar el último pallet permite empezar otra selección y las relecturas 
   ctx = reads(ctx, ['P202600003', 'LOC-CORTE']);
   const result = confirmOperation(ctx, initialData());
   assert.equal(getPallet(result.data, 'P202600003').location, 'LOC-CORTE');
-  assert.equal(result.context.active.code, 'P202600003');
+  assert.deepEqual(result.context, emptyContext());
   assert.deepEqual(removeSelectedPallet(reads(emptyContext(), ['P202600001']), 'P202600001'), emptyContext());
 });
 

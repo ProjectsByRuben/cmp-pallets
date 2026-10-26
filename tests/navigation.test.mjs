@@ -63,11 +63,26 @@ test('Quitar lectura elimina también la única OF seleccionada sin desasociar d
   assert.throws(() => removeSelectedOF(scanCode(ctx, 'P202600003', data), 'OF-101'), /Cancela/);
 });
 
-test('Tras confirmar, Volver conduce a Inicio y no restaura una propuesta ni revierte datos', () => {
+test('Tras confirmar vuelve directamente a Inicio sin historial ni selección y conserva los datos', () => {
   const nav = createNavigation(emptyContext); let data = initialData();
   read(nav, 'OF/26/0042', data); read(nav, 'P202600003', data);
   const saved = confirmOperation(nav.current, data); data = saved.data;
-  nav.restart(saved.context); nav.back();
+  nav.restart(saved.context);
+  assert.deepEqual(nav.current, emptyContext()); assert.equal(nav.canGoBack, false);
+  nav.back();
   assert.deepEqual(nav.current, emptyContext()); assert.equal(nav.canGoBack, false);
   assert.deepEqual(getPallet(data, 'P202600003').ofs, ['OF/26/0042']);
+});
+
+test('La siguiente OF tras guardar se consulta sola y no se propone asociarla al pallet anterior', () => {
+  const nav = createNavigation(emptyContext); let data = initialData();
+  read(nav, 'OF/26/0042', data); read(nav, 'P202600001', data);
+  const saved = confirmOperation(nav.current, data); data = saved.data;
+  nav.restart(saved.context);
+  read(nav, 'OF/26/0043', data);
+  assert.equal(nav.current.active.code, 'OF/26/0043');
+  assert.deepEqual(nav.current.ofs, ['OF/26/0043']);
+  assert.deepEqual(nav.current.pallets, []);
+  assert.equal(nav.current.pending, null);
+  assert.deepEqual(getPallet(data, 'P202600001').ofs, ['OF-101', 'OF/26/0042']);
 });
