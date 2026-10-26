@@ -33,13 +33,16 @@ test('Pallet → ubicación y ubicación → pallet proponen un traslado complet
     assert.equal(getPallet(result.data, 'P202600002').location, 'LOC-CORTE');
   }
 });
-test('Relecturas de OF no duplican; pallet → pallet sólo consulta; misma ubicación no opera', () => {
+test('Relecturas no duplican; pallet → pallet acumula selección; todos en destino no opera', () => {
   const one = scan(emptyContext(), 'OF/26/0042');
   assert.equal(scan(one, 'OF/26/0042').ofs.length, 1);
   let pallet = scan(emptyContext(), 'P202600001');
   pallet = scan(pallet, 'P202600002');
   assert.equal(pallet.active.code, 'P202600002'); assert.equal(pallet.pending, null);
-  assert.throws(() => scan(pallet, 'LOC-CORTE'), /ya está/);
+  assert.deepEqual(pallet.pallets, ['P202600001', 'P202600002']);
+  assert.equal(pallet.intent, 'move');
+  assert.equal(scan(pallet, 'LOC-CORTE').pending.type, 'move');
+  assert.throws(() => scan(scan(emptyContext(), 'P202600002'), 'LOC-CORTE'), /ya está/);
 });
 test('Cancelar y códigos erróneos no cambian datos ni seleccionados; pendiente bloquea nuevas lecturas', () => {
   const original = initialData();

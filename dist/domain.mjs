@@ -60,3 +60,17 @@ export function movePallet(data, palletCode, locationCode) {
   next.history = next.history.slice(0, 30);
   return next;
 }
+
+export function movePallets(data, palletCodes, locationCode) {
+  const codes = [...new Set(palletCodes)];
+  if (!codes.length) throw new Error('Selecciona al menos un pallet.');
+  if (!LOCATIONS.some(l => l.code === locationCode)) throw new Error('Escanea una ubicación de prueba.');
+  // Validate the entire selection before creating any changed state.
+  const changed = codes.filter(code => getPallet(data, code).location !== locationCode);
+  if (!changed.length) throw new Error('Los pallets seleccionados ya están en esta ubicación.');
+  const next = structuredClone(data);
+  for (const code of changed) getPallet(next, code).location = locationCode;
+  next.history.unshift({ text: changed.join(', ') + ' → ' + locationName(locationCode), at: new Date().toISOString() });
+  next.history = next.history.slice(0, 30);
+  return next;
+}

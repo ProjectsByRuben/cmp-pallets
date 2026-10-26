@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { initialData, getPallet } from '../dist/domain.mjs';
-import { emptyContext, beginMove, removeSelectedOF, scanCode, confirmOperation } from '../dist/workflow.mjs';
+import { emptyContext, beginMove, removeSelectedOF, removeSelectedPallet, scanCode, confirmOperation } from '../dist/workflow.mjs';
 import { createNavigation } from '../dist/navigation.mjs';
 
 const read = (nav, code, data) => nav.visit(scanCode(nav.current, code, data));
@@ -31,6 +31,7 @@ test('Mover pallet guía ambas selecciones, permite corregir pallet y rechaza OF
   assert.throws(() => read(nav, 'LOC-CALIDAD', data), /primero el pallet/);
   read(nav, 'P202600002', data); read(nav, 'P202600001', data);
   assert.equal(nav.current.active.code, 'P202600001');
+  nav.restart(removeSelectedPallet(nav.current, 'P202600002'));
   assert.throws(() => read(nav, 'OF/26/0042', data), /ubicación de destino/);
   assert.throws(() => read(nav, 'LOC-MONTAJE', data), /ya está/);
   read(nav, 'LOC-CALIDAD', data);

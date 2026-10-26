@@ -8,7 +8,7 @@ Prototipo independiente con datos ficticios. Muestra OFs, contenido de pallets y
 2. Abrir el enlace HTTPS en Safari y mantener esa página activa. El campo `inputmode="none"` recibe teclado externo sin solicitar teclado táctil; se vuelve a enfocar tras lecturas y acciones. Si iOS no admite el enfoque automático, tocar el campo una vez. La página no puede verificar si el Bluetooth está conectado.
 3. Escanear OF/26/0042: muestra producto y pallets. Leer más OFs prepara una selección sin duplicados. Escanear P202600001: propone asociar y requiere confirmar.
 4. Tras confirmar se muestra el pallet y su contenido. Escanear LOC-CALIDAD: propone el traslado completo y requiere confirmar. Las OFs que también estén en otros pallets conservan esos enlaces.
-5. También funciona en orden pallet → OF o ubicación → pallet. Pallet → pallet sólo cambia la consulta. «Inicio» descarta la selección y las propuestas sin confirmar. «Volver» recupera el paso anterior; tras guardar vuelve a Inicio, sin deshacer datos confirmados.
+5. También funciona en orden pallet → OF o ubicación → pallet. Pallet → pallet acumula una selección para traslado conjunto. Las relecturas del mismo pallet no lo duplican. «Inicio» descarta la selección y las propuestas sin confirmar. «Volver» recupera el paso anterior; tras guardar vuelve a Inicio, sin deshacer datos confirmados.
 6. Para consultar algo sin iniciar una propuesta desde el registro activo, pulsar «Inicio». «Datos de prueba» permite simular las lecturas pulsando las etiquetas.
 
 El colector acepta eventos de texto de iOS y Enter/Tab, filtra CRLF y, si no hay sufijo, sólo resuelve un código conocido tras 600 ms de pausa. Ante códigos desconocidos no borra la selección. La repetición inmediata del mismo código se ignora durante 1 segundo. Mientras existe propuesta, se debe confirmar o cancelar antes de leer más. Sólo el botón de confirmación aplica cambios; el Enter del lector no lo activa.
@@ -29,7 +29,9 @@ La compatibilidad depende de que el lector envíe el texto correcto como teclado
 - `dist/camera.mjs`: lectura de cámara con jsQR.
 - `dist/brand/`: tokens y assets originales CMP, usados sin alterar el logotipo.
 
-«Mover pallet» está visible en Inicio y en la ficha del pallet. Permite escanear o elegir el pallet, después escanear o elegir ubicación y confirmar. «Quitar lectura» elimina una OF de la selección (incluso si sólo hay una) o vuelve desde la ficha de un pallet; no desasocia contenido ya guardado.
+«Mover pallets» está visible en Inicio; desde una ficha, «Mover pallet» incorpora ese pallet a la selección. Permite escanear o elegir uno o varios pallets, después escanear o elegir la ubicación común y confirmar una sola vez. También se acumulan leyendo varios pallets directamente desde Inicio. Cada seleccionado muestra «Quitar», incluso si sólo hay uno. Quitar desde la confirmación vuelve a la selección y exige elegir de nuevo el destino. «Quitar lectura» de la OF sigue retirándola de su selección; ninguna de estas acciones elimina contenido ya guardado.
+
+Los pallets que ya estén en destino se indican y no generan un traslado adicional. Si todos están allí, se rechaza la operación. Se valida todo el grupo antes de crear el nuevo estado y se guarda una sola vez: códigos o destino inválidos no mueven parcialmente el grupo. El contenido OF ↔ pallet se conserva. Tras confirmar varios pallets se muestra la ubicación destino con sus pallets; tras uno, su ficha.
 
 La demo abarca consulta, asociación y localización. OTs, PIN e impresión portátil pertenecen al diseño completo anterior y no se implementan aquí. Reiniciar sólo afecta a datos de prueba del navegador. Si el almacenamiento falla, el cambio queda en memoria y se indica.
 
@@ -41,7 +43,7 @@ Se incorpora `tokens/cmp.css` y el logotipo negativo, favicon e icono de aplicac
 
 `node --test tests/*.test.mjs`
 
-Incluye decodificación real de todos los QR y versiones giradas, conservación de asociaciones y ubicaciones derivadas, estados de escaneo en ambos órdenes, cancelación y bloqueo de propuestas, navegación atrás e Inicio, retirada de lecturas, traslado guiado, entrada HID con/sin sufijo, CRLF y ciclo de vida de cámara.
+Incluye decodificación real de todos los QR y versiones giradas, conservación de asociaciones y ubicaciones derivadas, estados de escaneo en ambos órdenes, cancelación y bloqueo de propuestas, navegación atrás e Inicio, retirada de lecturas, traslado de uno o varios pallets, validación conjunta y destinos parcialmente coincidentes, entrada HID con/sin sufijo, CRLF y ciclo de vida de cámara.
 
 Sin build ni dependencias remotas. Para servir localmente: `python3 -m http.server 4183 --directory dist`. La cámara móvil exige HTTPS; para probar físicamente se utiliza el enlace publicado. El estado privado del navegador no se sube a la publicación.
 

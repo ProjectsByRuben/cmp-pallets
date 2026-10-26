@@ -1,6 +1,6 @@
 import { OFS, LOCATIONS, STORAGE_KEY, initialData, validateData, identify, getPallet, palletsForOF, ofName, locationName } from './domain.mjs';
 import { createReader } from './camera.mjs';
-import { emptyContext, scanCode, confirmOperation, beginMove, removeSelectedOF } from './workflow.mjs';
+import { emptyContext, scanCode, confirmOperation, beginMove, removeSelectedOF, removeSelectedPallet } from './workflow.mjs';
 import { createNavigation } from './navigation.mjs';
 import { createHidCollector } from './hid.mjs';
 
@@ -41,17 +41,33 @@ function linkRow(code, title, badge = '', simulateScan = false) {
 function palletRows(pallets, simulateScan = false) {
   return pallets.length ? pallets.map(p => linkRow(p.code, locationName(p.location), `${p.ofs.length} OF`, simulateScan)).join('') : '<p class="empty-line">Sin pallet registrado</p>';
 }
+function selectedPalletRows(codes, destination = null) {
+  return codes.map(code => {
+    const p = getPallet(data, code);
+    return `<div class="selected-pallet"><div><strong>${esc(code)}</strong><small>${esc(locationName(p.location))}${destination === p.location ? ' · Ya está en destino' : ''}</small></div><button class="text-button" type="button" data-remove-pallet="${esc(code)}" aria-label="Quitar ${esc(code)} de la selección">Quitar</button></div>`;
+  }).join('');
+}
 function renderPending(operation) {
-  const p = getPallet(data, operation.pallet);
   const association = operation.type === 'associate';
-  return `<section class="card proposal" aria-labelledby="proposal-title"><span class="eyebrow">PENDIENTE DE CONFIRMAR</span><h2 id="proposal-title">${association ? 'Asociar a pallet' : 'Trasladar pallet'}</h2>
-    ${association ? `<div class="selection-list">${operation.ofs.map(code => `<div><strong>${esc(code)}</strong><span>${esc(ofName(code))}</span></div>`).join('')}</div><div class="destination"><span>PALLET DESTINO</span><strong>${esc(p.code)}</strong><p>${esc(locationName(p.location))}</p></div><p class="hint">Conserva las asociaciones en otros pallets.</p>` : `<div class="record-code">${esc(p.code)}</div><div class="transfer"><div><span>Origen</span><strong>${esc(locationName(p.location))}</strong></div><span class="transfer-arrow" aria-hidden="true">→</span><div><span>Destino</span><strong>${esc(locationName(operation.location))}</strong></div></div><p class="hint">Se trasladará el pallet completo · ${p.ofs.length} OF</p>`}
-    <div class="actions"><button class="button primary" data-action="confirm" type="button">${association ? 'Confirmar asociación' : 'Confirmar traslado'}</button><button class="button secondary" data-action="cancel" type="button">Cancelar</button></div></section>`;
+  let detail;
+  if (association) {
+    const p = getPallet(data, operation.pallet);
+    detail = `<div class="selection-list">${operation.ofs.map(code => `<div><strong>${esc(code)}</strong><span>${esc(ofName(code))}</span></div>`).join('')}</div><div class="destination"><span>PALLET DESTINO</span><strong>${esc(p.code)}</strong><p>${esc(locationName(p.location))}</p></div><p class="hint">Conserva las asociaciones en otros pallets.</p>`;
+  } else {
+    const changed = operation.pallets.filter(code => getPallet(data, code).location !== operation.location).length;
+    detail = `<div class="section-label">${operation.pallets.length} ${operation.pallets.length === 1 ? 'pallet seleccionado' : 'pallets seleccionados'}</div>${selectedPalletRows(operation.pallets, operation.location)}<div class="destination"><span>UBICACIÓN DE DESTINO</span><strong>${esc(locationName(operation.location))}</strong></div><p class="hint">${changed} ${changed === 1 ? 'pallet cambiará' : 'pallets cambiarán'} de ubicación. Se conserva todo el contenido.</p>`;
+  }
+  return `<section class="card proposal" aria-labelledby="proposal-title"><span class="eyebrow">PENDIENTE DE CONFIRMAR</span><h2 id="proposal-title">${association ? 'Asociar a pallet' : 'Trasladar pallets'}</h2>${detail}<div class="actions"><button class="button primary" data-action="confirm" type="button">${association ? 'Confirmar asociación' : 'Confirmar traslado'}</button><button class="button secondary" data-action="cancel" type="button">Cancelar</button></div></section>`;
 }
 function renderMove() {
-  if (!context.active) return `<section class="card"><span class="eyebrow">PASO 1 DE 2</span><h2>Seleccionar pallet</h2><p class="record-name">Escanea el pallet que quieres mover.</p><div class="section-label">O selecciona uno</div>${palletRows(data.pallets, true)}</section>`;
-  const p = getPallet(data, context.active.code);
-  return `<section class="card"><div class="record-head"><span class="eyebrow">PASO 2 DE 2</span><button class="text-button" type="button" data-action="change-move-pallet">Cambiar pallet</button></div><h2 class="record-code">${esc(p.code)}</h2><p class="record-name">Ubicación actual: ${esc(locationName(p.location))}</p><div class="section-label">Ubicación de destino</div><p class="hint">Escanea su QR o selecciona una ubicación.</p><div class="location-options">${LOCATIONS.map(loc => `<button class="item-row" type="button" data-code="${esc(loc.code)}" ${loc.code === p.location ? 'disabled' : ''}><span><strong>${esc(loc.name)}</strong><small>${esc(loc.code)}</small></span>${loc.code === p.location ? '<span class="count">Actual</span>' : '<span class="chevron" aria-hidden="true">›</span>'}</button>`).join('')}</div></section>`;
+  const codes = context.pallets;
+  const available = data.pallets.filter(p => !codes.includes(p.code));
+  const selected = codes.length ? `<div class="section-label">${codes.length} ${codes.length === 1 ? 'pallet seleccionado' : 'pallets seleccionados'}</div>${selectedPalletRows(codes)}` : '<p class="record-name">Escanea uno o varios pallets.</p>';
+  const destinations = codes.length ? `<div class="section-label">Ubicación de destino</div><p class="hint">Escanea su QR o selecciona una ubicación.</p><div class="location-options">${LOCATIONS.map(loc => {
+    const allThere = codes.every(code => getPallet(data, code).location === loc.code);
+    return `<button class="item-row" type="button" data-code="${esc(loc.code)}" ${allThere ? 'disabled' : ''}><span><strong>${esc(loc.name)}</strong><small>${esc(loc.code)}</small></span>${allThere ? `<span class="count">${codes.length === 1 ? 'Actual' : 'Todos aquí'}</span>` : '<span class="chevron" aria-hidden="true">›</span>'}</button>`;
+  }).join('')}</div>` : '';
+  return `<section class="card"><span class="eyebrow">TRASLADO A UNA MISMA UBICACIÓN</span><h2>Seleccionar pallets</h2>${selected}${codes.length ? '<p class="hint selection-hint">Puedes escanear más pallets antes de la ubicación.</p>' : ''}${destinations}</section>${available.length ? `<section class="card compact"><div class="section-label">${codes.length ? 'Añadir pallet' : 'O selecciona pallets'}</div>${palletRows(available, true)}</section>` : ''}`;
 }
 function render() {
   let html = '';
@@ -63,18 +79,18 @@ function render() {
       <section class="card next-action"><div class="section-label">ASOCIAR A PALLET · ${context.ofs.length} ${context.ofs.length === 1 ? 'OF' : 'OFs'}</div>${context.ofs.length > 1 ? `<div class="of-chips">${context.ofs.map(of => `<button type="button" data-remove="${esc(of)}" aria-label="Quitar ${esc(of)} de la selección">${esc(of)} <span aria-hidden="true">×</span></button>`).join('')}</div>` : ''}<p>Escanea el pallet de destino.</p><span class="hint">Puedes leer más OFs antes del pallet.</span></section>`;
   } else if (context.active?.type === 'pallet') {
     const p = getPallet(data, context.active.code);
-    html = `<section class="card"><div class="record-head"><span class="eyebrow">PALLET</span><button class="text-button" type="button" data-action="discard">Quitar lectura</button></div><h2 class="record-code">${esc(p.code)}</h2><div class="location-line"><span aria-hidden="true">⌖</span> ${esc(locationName(p.location))}</div><button class="button primary full" data-action="start-move" type="button">Mover pallet</button><div class="section-label">Contenido <span class="count">${p.ofs.length} OF</span></div>${p.ofs.length ? p.ofs.map(code => linkRow(code, ofName(code))).join('') : '<p class="empty-line">Pallet vacío</p>'}</section><section class="card next-action"><p>Escanea una OF para asociarla.</p><span class="hint">También puedes escanear una ubicación para trasladar el pallet.</span></section>`;
+    html = `<section class="card"><div class="record-head"><span class="eyebrow">PALLET</span><button class="text-button" type="button" data-remove-pallet="${esc(p.code)}">Quitar lectura</button></div><h2 class="record-code">${esc(p.code)}</h2><div class="location-line"><span aria-hidden="true">⌖</span> ${esc(locationName(p.location))}</div><button class="button primary full" data-action="start-move" type="button">Mover pallet</button><div class="section-label">Contenido <span class="count">${p.ofs.length} OF</span></div>${p.ofs.length ? p.ofs.map(code => linkRow(code, ofName(code))).join('') : '<p class="empty-line">Pallet vacío</p>'}</section><section class="card next-action"><p>Escanea una OF para asociarla.</p><span class="hint">Escanea más pallets y después una ubicación para moverlos juntos.</span></section>`;
   } else if (context.active?.type === 'location') {
     const loc = context.active.code;
     html = `<section class="card"><span class="eyebrow">UBICACIÓN</span><h2>${esc(locationName(loc))}</h2><p class="record-name">${esc(loc)}</p><div class="section-label">Pallets en esta ubicación</div>${palletRows(data.pallets.filter(p => p.location === loc))}</section><section class="card next-action"><p>Escanea un pallet para traerlo aquí.</p></section>`;
   } else {
-    html = `<section class="card start-card"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 7H7v10M31 7h10v10M7 31v10h10M41 31v10H31M14 14h7v7h-7zM27 14h7v7h-7zM14 27h7v7h-7zM28 27v7h6v-4M27 24h7"/></svg><h2>Escanea una OF o un pallet</h2><p>Sus datos aparecerán aquí.</p></section><button class="button secondary full home-move" data-action="start-move" type="button">Mover pallet →</button><section class="card compact"><div class="section-label">Pallets</div>${palletRows(data.pallets)}</section>`;
+    html = `<section class="card start-card"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 7H7v10M31 7h10v10M7 31v10h10M41 31v10H31M14 14h7v7h-7zM27 14h7v7h-7zM14 27h7v7h-7zM28 27v7h6v-4M27 24h7"/></svg><h2>Escanea una OF o un pallet</h2><p>Sus datos aparecerán aquí.</p></section><button class="button secondary full home-move" data-action="start-move" type="button">Mover pallets →</button><section class="card compact"><div class="section-label">Pallets</div>${palletRows(data.pallets)}</section>`;
   }
   $('main').innerHTML = html;
   $('samples').innerHTML = `<div class="sample-section"><h3>OFs</h3>${OFS.map(of => linkRow(of.code, of.name, '', true)).join('')}</div><div class="sample-section"><h3>Pallets</h3>${palletRows(data.pallets, true)}</div><div class="sample-section"><h3>Ubicaciones</h3>${LOCATIONS.map(l => linkRow(l.code, l.name, '', true)).join('')}</div>`;
-  $('screen-title').textContent = context.intent === 'move' || context.pending?.type === 'move' ? 'Mover pallet' : context.pending ? 'Asociar OFs' : context.active?.type === 'of' ? 'Orden de fabricación' : context.active?.type === 'pallet' ? 'Detalle del pallet' : context.active?.type === 'location' ? 'Ubicación' : 'Escanear';
+  $('screen-title').textContent = context.intent === 'move' || context.pending?.type === 'move' ? 'Mover pallets' : context.pending ? 'Asociar OFs' : context.active?.type === 'of' ? 'Orden de fabricación' : context.active?.type === 'pallet' ? 'Detalle del pallet' : context.active?.type === 'location' ? 'Ubicación' : 'Escanear';
   $('go-back').disabled = !navigation.canGoBack;
-  $('reader-code').placeholder = context.pending ? 'Confirma o cancela la operación' : context.intent === 'move' ? context.active ? 'Escanea una ubicación de destino' : 'Escanea el pallet que quieres mover' : context.ofs.length ? 'Escanea más OFs o un pallet' : context.active?.type === 'pallet' ? 'Escanea una OF o ubicación' : 'OF, pallet o ubicación';
+  $('reader-code').placeholder = context.pending ? 'Confirma o cancela la operación' : context.intent === 'move' ? context.pallets.length ? 'Más pallets o ubicación de destino' : 'Escanea los pallets que quieres mover' : context.ofs.length ? 'Escanea más OFs o un pallet' : context.active?.type === 'pallet' ? 'Escanea otro pallet, OF o ubicación' : 'OF, pallet o ubicación';
   updateStatus();
 }
 function receive(raw) {
@@ -151,21 +167,24 @@ document.addEventListener('click', event => {
     context = navigation.visit(next); lastScan = ''; collector.clear(); notice(); render(); focusReader(); return;
   }
   if (button?.dataset.code) { collector.clear(); receive(button.dataset.code); $('sample-data').open = false; focusReader(); return; }
+  if (button?.dataset.removePallet) {
+    context = navigation.restart(removeSelectedPallet(context, button.dataset.removePallet));
+    lastScan = ''; collector.clear(); notice('Pallet quitado de la selección.'); render(); focusReader(); return;
+  }
   if (button?.dataset.remove) {
     context = navigation.restart(removeSelectedOF(context, button.dataset.remove));
     lastScan = ''; collector.clear(); notice('Lectura quitada de la selección.'); render(); focusReader(); return;
   }
   if (button?.dataset.action === 'cancel') { goBack(); notice('Operación cancelada.'); return; }
-  if (button?.dataset.action === 'discard') { goBack(); return; }
-  if (button?.dataset.action === 'start-move' || button?.dataset.action === 'change-move-pallet') {
-    context = navigation.visit(beginMove(button.dataset.action === 'start-move' ? context : emptyContext()));
+  if (button?.dataset.action === 'start-move') {
+    context = navigation.visit(beginMove(context));
     lastScan = ''; collector.clear(); notice(); render(); focusReader(); return;
   }
   if (button?.dataset.action === 'confirm') {
     try {
       const result = confirmOperation(context, data);
       const saved = commit(result.data); context = navigation.restart(result.context); lastScan = ''; collector.clear();
-      const message = result.operation.type === 'associate' ? `${result.operation.ofs.length} OF asociada${result.operation.ofs.length > 1 ? 's' : ''} a ${result.operation.pallet}.` : `${result.operation.pallet} trasladado a ${locationName(result.operation.location)}.`;
+      const message = result.operation.type === 'associate' ? `${result.operation.ofs.length} OF asociada${result.operation.ofs.length > 1 ? 's' : ''} a ${result.operation.pallet}.` : `${result.operation.pallets.length} ${result.operation.pallets.length === 1 ? 'pallet en' : 'pallets en'} ${locationName(result.operation.location)}.`;
       notice(saved ? message : `${message} Sólo en esta pestaña: el navegador no permite guardar.`, !saved);
       render(); focusReader();
     } catch (error) { notice(error.message, true); }
