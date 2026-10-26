@@ -1,22 +1,19 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>QR de prueba · Pallets</title>
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Etiquetas de prueba · CMP Pallets</title>
+  <link rel="icon" href="brand/cmp-icono-64.png" type="image/png"><link rel="stylesheet" href="brand/cmp.css"><link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header class="cmp-header no-print"><div class="header-inner"><img class="cmp-logo" src="brand/cmp-logo-negativo.png" alt="CMP"><span class="cmp-title">Pallets</span><span class="demo-badge">DEMO</span></div></header>
   <main class="qr-page">
-    <header class="qr-header"><div><span class="eyebrow">HOJA DE ETIQUETAS · DATOS FICTICIOS</span><h1>Los códigos para probar con tu iPhone</h1><p>Muestra esta hoja en el ordenador o imprímela. Cada QR contiene exactamente el código que aparece debajo.</p></div><button class="button secondary no-print" id="print" type="button">Imprimir etiquetas</button></header>
-    <section class="launch no-print"><div id="launch-qr" class="qr-svg" aria-label="QR para abrir la demo en el teléfono"></div><div><h2>Primero abre la demo en Safari</h2><p>Escanea este QR con la cámara normal del iPhone para abrir la página.</p><p style="margin:12px 0"><a id="launch-url" href="./">Abrir demo</a></p><p class="hint">Después usa el botón «Abrir cámara» dentro de la demo para leer las etiquetas de abajo. Si se pide acceso al sitio privado, entra con tu cuenta de ChatGPT.</p></div></section>
-    <section class="test-instructions"><h2>Una prueba en tres lecturas</h2><ol><li>En la demo, pulsa <strong>Abrir cámara · escanear OF</strong> y lee <strong>OF/26/0042</strong>.</li><li>Pulsa <strong>Continuar · escanear pallet</strong>, lee <strong>P202600001</strong> y confirma la agrupación.</li><li>Abre el contenido del pallet, pulsa <strong>Mover este pallet</strong>, lee <strong>LOC-CALIDAD</strong> y confirma la nueva ubicación.</li></ol><p class="hint">Resultado: OF/26/0042 aparece en P202600001, en Control de calidad. Los datos cambian sólo en el navegador donde haces la prueba.</p></section>
+    <header class="qr-header"><div><span class="eyebrow">DATOS FICTICIOS</span><h1>Etiquetas de prueba</h1><p>Muéstralas en el ordenador o imprime esta hoja.</p></div><button class="button secondary no-print" id="print" type="button">Imprimir etiquetas</button></header>
+    <section class="launch no-print"><div id="launch-qr" class="qr-svg" aria-label="QR para abrir la demo en el teléfono"></div><div><h2>Abrir la demo</h2><p>Lee este QR con la cámara del iPhone. Acceso sin cuenta.</p><a id="launch-url" href="./">Abrir demo</a></div></section>
+    <section class="test-instructions"><h2>Prueba del lector</h2><ol><li>Con la demo abierta, escanea <strong>OF/26/0042</strong> con el lector Bluetooth HID.</li><li>Escanea <strong>P202600001</strong> y pulsa <strong>Confirmar asociación</strong>.</li><li>Escanea <strong>LOC-CALIDAD</strong> y pulsa <strong>Confirmar traslado</strong>.</li></ol><p class="hint">Sin lector físico, usa «Usar cámara» en la demo para cada etiqueta. El sufijo recomendado del lector es Enter. Los cambios sólo se guardan en el navegador donde pruebas.</p></section>
     <div id="qr-cards" class="qr-grid"></div>
-    <p class="print-note">Para leerlos con facilidad: muestra un QR cada vez, aumenta el brillo de la pantalla del ordenador y evita reflejos. En papel, imprime al 100 % sin recortar los márgenes blancos.</p>
-    <p class="no-print"><a href="./">← Volver a la demo de escaneo</a></p>
+    <p class="print-note">Lee una etiqueta cada vez. En papel, imprime al 100 % conservando los márgenes blancos.</p><p class="no-print"><a href="./">Volver a la demo</a></p>
   </main>
-  <script src="vendor/qrcode.js"></script>
-  <script type="module" src="codigos.mjs"></script>
+  <script src="vendor/qrcode.js"></script><script type="module" src="codigos.mjs"></script>
 </body>
 </html>

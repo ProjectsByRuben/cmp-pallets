@@ -1,0 +1,74 @@
+/* Estilo CMP — variables CSS para webs. Copiar este fichero y usar var(--cmp-...). */
+:root {
+  /* marca */
+  --cmp-primary: #E30613;
+  --cmp-primary-dark: #B8050F;
+  --cmp-primary-light: #FDE4E6;
+  --cmp-primary-soft: #FDECED;
+  --cmp-on-primary: #FFFFFF;
+
+  /* neutros */
+  --cmp-graphite: #1F1F22;
+  --cmp-gray-900: #27272A;
+  --cmp-gray-600: #52525B;
+  --cmp-gray-400: #A1A1AA;
+  --cmp-gray-200: #E4E4E7;
+  --cmp-gray-100: #F4F4F5;
+  --cmp-bg: #F4F6F9;
+  --cmp-surface: #FFFFFF;
+  --cmp-text: #1F2937;
+  --cmp-text-muted: #6B7280;
+  --cmp-border: #E3E7EE;
+
+  /* estados */
+  --cmp-success: #16A34A;
+  --cmp-warning: #D97706;
+  --cmp-error: #B91C1C;
+  --cmp-info: #0E7490;
+
+  /* tipografía y forma */
+  --cmp-font: "Segoe UI", Roboto, system-ui, -apple-system, Arial, sans-serif;
+  --cmp-radius-sm: 4px;
+  --cmp-radius: 6px;
+  --cmp-radius-lg: 8px;
+  --cmp-radius-xl: 12px;
+  --cmp-shadow-card: 0 4px 14px rgba(15, 23, 42, .08);
+  --cmp-shadow-popup: 0 10px 30px rgba(0, 0, 0, .20);
+}
+
+/* ---- base ---- */
+body { font-family: var(--cmp-font); font-size: 13px; color: var(--cmp-text); background: var(--cmp-bg); margin: 0; }
+input:focus, select:focus, textarea:focus { outline: 2px solid #F8C1C5; border-color: var(--cmp-primary); }
+input[type=checkbox], input[type=radio] { accent-color: var(--cmp-primary); }
+
+/* ---- cabecera estándar: grafito + línea roja + logo negativo ---- */
+.cmp-header { height: 52px; display: flex; align-items: center; gap: 18px; padding: 0 16px;
+  background: var(--cmp-graphite); color: #fff; border-bottom: 3px solid var(--cmp-primary); }
+.cmp-header .cmp-logo { height: 30px; display: block; }
+.cmp-header .cmp-title { font-weight: 600; font-size: 15px; padding-left: 12px; border-left: 1px solid rgba(255,255,255,.25); }
+.cmp-header nav a { color: #D4D4D8; text-decoration: none; padding: 6px 12px; border-radius: var(--cmp-radius); }
+.cmp-header nav a:hover { background: rgba(255,255,255,.10); color: #fff; }
+.cmp-header nav a.active { background: var(--cmp-primary); color: #fff; }
+
+/* ---- botones ---- */
+.cmp-btn { cursor: pointer; border: 1px solid var(--cmp-border); background: #fff; color: var(--cmp-text);
+  border-radius: var(--cmp-radius); padding: 5px 11px; font: inherit; }
+.cmp-btn:hover { border-color: #C7CFDB; background: #F8FAFC; }
+.cmp-btn-primary { background: var(--cmp-primary); border-color: var(--cmp-primary); color: var(--cmp-on-primary); }
+.cmp-btn-primary:hover { background: var(--cmp-primary-dark); border-color: var(--cmp-primary-dark); }
+.cmp-btn-danger { color: var(--cmp-error); border-color: #F3C4C4; }
+
+/* ---- tarjetas, chips, insignias ---- */
+.cmp-card { background: var(--cmp-surface); border: 1px solid var(--cmp-border); border-radius: 10px; padding: 14px 16px; }
+.cmp-card:hover { box-shadow: var(--cmp-shadow-card); border-color: #F3B5B9; }
+.cmp-chip { padding: 4px 11px; border-radius: 14px; border: 1px solid var(--cmp-border); background: #fff; cursor: pointer; }
+.cmp-chip.active { background: var(--cmp-primary); color: #fff; border-color: var(--cmp-primary); }
+.cmp-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; background: var(--cmp-gray-200); }
+.cmp-badge-brand { background: var(--cmp-primary-light); color: var(--cmp-primary-dark); }
+.cmp-badge-success { background: #DCFCE7; color: #166534; }
+.cmp-badge-error { background: #FEE2E2; color: #991B1B; }
+
+/* ---- tablas ---- */
+.cmp-table { border-collapse: collapse; width: 100%; background: #fff; }
+.cmp-table th { background: #EFEFEF; border-bottom: 2px solid var(--cmp-primary); font-size: 12px; text-align: left; padding: 7px 9px; }
+.cmp-table td { border-bottom: 1px solid var(--cmp-border); padding: 7px 9px; }

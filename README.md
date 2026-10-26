@@ -1,31 +1,49 @@
-# Pallets — demo de cámara para iPhone
+# CMP Pallets — demo de lector QR
 
-Prueba móvil guiada con datos ficticios. No llama a Odoo ni a otro backend. Las imágenes de cámara se procesan localmente con jsQR 1.4.0 y se descartan. Los cambios se conservan en localStorage sólo en ese navegador; no se comparten entre teléfonos, ordenador o perfiles.
+Prototipo independiente con datos ficticios. Muestra OFs, contenido de pallets y ubicaciones. No se conecta a Odoo ni realiza movimientos de inventario. Acceso público sin cuenta. El estado sigue en localStorage con la clave original; los cambios no se comparten entre teléfonos u ordenadores.
 
-## Probar
+## Uso con Eyoyo por Bluetooth e iPhone
 
-1. Abrir el enlace HTTPS publicado en Safari del iPhone. El sitio es privado y puede pedir iniciar sesión con la cuenta propietaria de ChatGPT.
-2. Abrir `/codigos.html` en el ordenador o imprimir la hoja. Su QR de acceso abre la demo; los QR de etiquetas contienen texto, no enlaces.
-3. Escanear OF/26/0042 desde la propia demo, continuar al pallet, escanear P202600001 y confirmar. Consultar el contenido.
-4. Mover ese pallet escaneando LOC-CALIDAD y confirmar. La OF se localizará en Control de calidad. Sus asociaciones en otros pallets se conservan.
-5. Reiniciar prueba vuelve al estado inicial. Los datos y permisos Odoo reales no se utilizan.
+1. Emparejar el lector con iOS. Configurarlo según su manual en teclado HID, envío inmediato y sufijo Enter (o Tab). No usar carga de códigos acumulados ni modo SPP/BLE de integración propietaria.
+2. Abrir el enlace HTTPS en Safari y mantener esa página activa. El campo `inputmode="none"` recibe teclado externo sin solicitar teclado táctil; se vuelve a enfocar tras lecturas y acciones. Si iOS no admite el enfoque automático, tocar el campo una vez. La página no puede verificar si el Bluetooth está conectado.
+3. Escanear OF/26/0042: muestra producto y pallets. Leer más OFs prepara una selección sin duplicados. Escanear P202600001: propone asociar y requiere confirmar.
+4. Tras confirmar se muestra el pallet y su contenido. Escanear LOC-CALIDAD: propone el traslado completo y requiere confirmar. Las OFs que también estén en otros pallets conservan esos enlaces.
+5. También funciona en orden pallet → OF o ubicación → pallet. Pallet → pallet sólo cambia la consulta. «Nueva lectura» borra el contexto y las operaciones sin confirmar, no las asociaciones guardadas.
+6. Para consultar algo sin iniciar una propuesta desde el registro activo, pulsar «Nueva lectura». «Datos de prueba» permite simular las lecturas pulsando las etiquetas.
 
-La cámara requiere HTTPS, permiso del navegador y un dispositivo con cámara. Se solicita la cámara trasera y se incluye `playsinline` para Safari. Se cierran las pistas al terminar la lectura, cancelar, cambiar de pestaña o salir. La entrada manual sirve para comprobar el flujo sin cámara.
+El colector acepta eventos de texto de iOS y Enter/Tab, filtra CRLF y, si no hay sufijo, sólo resuelve un código conocido tras 600 ms de pausa. Ante códigos desconocidos no borra la selección. La repetición inmediata del mismo código se ignora durante 1 segundo. Mientras existe propuesta, se debe confirmar o cancelar antes de leer más. Sólo el botón de confirmación aplica cambios; el Enter del lector no lo activa.
 
-## Alcance
+La compatibilidad depende de que el lector envíe el texto correcto como teclado. Si `/` u otros símbolos salen distintos, revisar idiomas de teclado de iOS/lector. La foto identifica EY-032 pero no permite comprobar su configuración o firmware. No se utiliza Web Bluetooth, WebHID ni se solicitan permisos de dispositivo al navegador.
 
-Esta demo está centrada en agrupar, consultar y reubicar mediante QR. El prototipo de entrevista y el diseño completo de OTs, PIN e impresión se conservan separados. Aquí no se autentica un empleado, no se cierran OTs y no se imprime mediante una impresora portátil.
+## Cámara y etiquetas
 
-El lector acepta sólo los códigos sintéticos de la hoja; no intenta interpretar QR reales de la empresa. La lectura del QR no guarda una agrupación o un traslado hasta que se confirma el resumen.
+`/codigos` contiene los QR sintéticos y una hoja imprimible. El QR de acceso abre la demo; las etiquetas contienen texto. Con cámara, usar «Usar cámara» para cada lectura y permitir acceso HTTPS. jsQR procesa la imagen localmente; se cierran las pistas al leer, cancelar, ocultar pestaña o salir. «Escribir código» ofrece teclado táctil.
 
-## Comprobaciones
+## Estructura
+
+- `dist/domain.mjs`: datos ficticios y operaciones OF ↔ pallet; modelo y almacenamiento conservados.
+- `dist/workflow.mjs`: decide qué consultar o proponer según los códigos sucesivos. Confirmación separada de lectura.
+- `dist/hid.mjs`: colector de texto del lector, terminadores y control de parciales.
+- `dist/app.mjs`: interfaz, enfoque y conexiones entre lector, cámara y operaciones.
+- `dist/camera.mjs`: lectura de cámara con jsQR.
+- `dist/brand/`: tokens y assets originales CMP, usados sin alterar el logotipo.
+
+La demo abarca consulta, asociación y localización. OTs, PIN e impresión portátil pertenecen al diseño completo anterior y no se implementan aquí. Reiniciar sólo afecta a datos de prueba del navegador. Si el almacenamiento falla, el cambio queda en memoria y se indica.
+
+## Marca
+
+Se incorpora `tokens/cmp.css` y el logotipo negativo, favicon e icono de aplicación de [CMP-TIC/cmp-brand](https://github.com/CMP-TIC/cmp-brand), commit `64a4c9b90d576e55dfbd4c333a7a89e9692f3729`, guía 1.0 de Eduardo Sanz (2026-10-26). Cabecera grafito, línea roja 3 px, rojo CMP para acciones, fuentes del sistema y componentes según la guía. La copia de tokens se mantiene literal; los ajustes propios están en `dist/style.css`.
+
+## Validación y operación
 
 `node --test tests/*.test.mjs`
 
-Incluye lectura de matrices QR reales con jsQR (también rotadas), asociaciones de una OF en varios pallets, idempotencia de contenido, rechazo de códigos ajenos, derivación de ubicaciones, validación de estado y cancelación de permisos de cámara pendientes.
+Incluye decodificación real de todos los QR y versiones giradas, conservación de asociaciones y ubicaciones derivadas, estados de escaneo en ambos órdenes, cancelación y bloqueo de propuestas, entrada HID con/sin sufijo, CRLF y ciclo de vida de cámara.
 
-## Dependencias incorporadas
+Sin build ni dependencias remotas. Para servir localmente: `python3 -m http.server 4183 --directory dist`. La cámara móvil exige HTTPS; para probar físicamente se utiliza el enlace publicado. El estado privado del navegador no se sube a la publicación.
 
-Se incluyen las distribuciones exactas de npm de jsqr 1.4.0 (Apache-2.0) y qrcode-generator 1.4.4 (MIT), verificadas contra la integridad del registro. Los archivos y avisos de licencia están en `dist/vendor/`. No hay dependencias de CDN durante la prueba.
+La prueba con iPhone físico y lector emparejado debe realizarse en ese dispositivo; las pruebas automatizadas no verifican hardware. No hay backend ni logs de negocio remotos. Si una publicación falla se conserva la versión anterior hasta completar el despliegue; cada versión queda vinculada a su commit fuente.
 
-La prueba en un iPhone físico sigue siendo necesaria para confirmar la cámara y el enfoque en ese dispositivo. La comprobación de sintaxis o una cámara simulada no acreditan acceso a hardware real.
+## Dependencias
+
+Distribuciones npm jsqr 1.4.0 (Apache-2.0) y qrcode-generator 1.4.4 (MIT), verificadas contra integridad del registro. Licencias en `dist/vendor/`. Sin CDN en ejecución.
