@@ -4,7 +4,8 @@ Demo independiente de OFs, pallets y ubicaciones. Datos ficticios en localStorag
 sin backend ni conexión Odoo. No añadir credenciales ni datos reales.
 
 Antes de actuar: `git status --short`, `git branch --show-current` y
-`git worktree list`. Trabajar en el worktree propio `cmp-pallets/desarrollo`,
+`git worktree list`. Trabajar en el worktree propio
+`/home/rubenfernandez/CMP/worktrees/cmp-pallets/desarrollo`,
 rama `dev/local`, o una rama de tarea autorizada. La base estable es `main`
 en `/home/rubenfernandez/CMP/cmp-pallets`. No usar un worktree de Doodba como Git
 de esta aplicación.

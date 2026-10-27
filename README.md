@@ -64,7 +64,7 @@ La versión anterior (4, commit `c1de498`) permanece guardada en Sites y tiene u
 Repositorio privado: https://github.com/ProjectsByRuben/cmp-pallets.
 La base `main` está en `/home/rubenfernandez/CMP/cmp-pallets`.
 El worktree para trabajar está en
-`/home/rubenfernandez/CMP/doodba-cmp/odoo/custom/worktrees/cmp-pallets/desarrollo`,
+`/home/rubenfernandez/CMP/worktrees/cmp-pallets/desarrollo`,
 rama `dev/local`. Abrir `CMP-Pallets.code-workspace` en la carpeta Doodba.
 Es un Git independiente: no pertenece al repositorio de Doodba ni al de OdooClaw.
 
