@@ -1,5 +1,8 @@
 # CMP Pallets
 
+Antes de actuar, leer `/home/rubenfernandez/CMP/GUIA_DE_TRABAJO_CMP.md`
+y `/home/rubenfernandez/CMP/AGENTS.md`, además de estas instrucciones.
+
 Demo independiente de OFs, pallets y ubicaciones. Datos ficticios en localStorage,
 sin backend ni conexión Odoo. No añadir credenciales ni datos reales.
 
