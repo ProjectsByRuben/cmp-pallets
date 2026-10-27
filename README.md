@@ -58,3 +58,19 @@ Distribuciones npm jsqr 1.4.0 (Apache-2.0) y qrcode-generator 1.4.4 (MIT), verif
 Vista centrada con iconos SVG locales grandes y etiquetas, acceso directo a cámara, asociación de OFs y traslado de pallets. «Asociar OFs» prepara la pantalla para la misma secuencia de lectura existente. El catálogo de pallets está plegado en Inicio y la ayuda, etiquetas y datos de prueba se agrupan en «Opciones de prueba». Los controles de Volver, Inicio y Quitar continúan visibles en sus pantallas. No cambia la clave de almacenamiento ni las operaciones de negocio.
 
 La versión anterior (4, commit `c1de498`) permanece guardada en Sites y tiene una copia fuente independiente. Identificadores y recuperación documentados en [docs/versiones.md](docs/versiones.md). Iconos en `dist/icons.mjs` y ajustes de esta vista en `dist/workspace.css`; los tokens CMP originales se conservan.
+
+## Repositorio y desarrollo
+
+Repositorio privado: https://github.com/ProjectsByRuben/cmp-pallets.
+La base `main` está en `/home/rubenfernandez/CMP/cmp-pallets`.
+El worktree para trabajar está en
+`/home/rubenfernandez/CMP/doodba-cmp/odoo/custom/worktrees/cmp-pallets/desarrollo`,
+rama `dev/local`. Abrir `CMP-Pallets.code-workspace` en la carpeta Doodba.
+Es un Git independiente: no pertenece al repositorio de Doodba ni al de OdooClaw.
+
+El código publicado actualmente en Sites corresponde al commit `4570ef1`; los cambios
+de organización y documentación no requieren volver a desplegar.
+La demo sigue en https://cmp-pallets-iphone-demo.cmp-grupo-7773.chatgpt.site.
+Guardar en GitHub no publica automáticamente en Sites. Para cambiar la demo,
+validar las pruebas y desplegar las fuentes en el proyecto Sites existente.
+La versión anterior se conserva según `docs/versiones.md`.
