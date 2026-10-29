@@ -42,6 +42,10 @@ addon valida modelo, permisos, auditoría, rollback y rutas HTTP con fixtures
 reversibles en cmpslu y GC desactivada. Nginx permite sólo la ruta específica de
 movimiento, junto a las existentes; no se expone escritura ORM genérica.
 
-Este documento describe el código preparado. La activación en pallets.cmp3.es
-requiere autorización para cargar el addon y reconstruir el contenedor independiente.
+Activado en pallets.cmp3.es el 29/10/2026 con autorización de Rubén: actualización
+sólo de cmp_mrp_packages a 16.0.1.7.0, reinicio de Odoo y rebuild del contenedor web.
+Comprobados certificado HTTPS, bundle publicado y bloqueo de las rutas sin sesión.
 No se declaran implementadas etiquetas, vaciado, retirada de OFs o cierres de OT.
+
+Validación posterior al despliegue: 4 pruebas HTTP/Chromium correctas, sin errores,
+fallos ni saltos; fixtures sin cambios y GC de filestore desactivada.

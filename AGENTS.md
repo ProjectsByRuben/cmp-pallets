@@ -45,8 +45,8 @@ No ejecutar Compose de Doodba para gestionar Pallets. El runtime no monta `src/`
 requiere nueva compilación para adoptar cambios. `deploy/check_service.py` comprueba
 la entrada sin credenciales ni escrituras de negocio.
 DNS y HTTPS de `pallets.cmp3.es` están operativos y se verificaron el 29/10/2026.
-Asociación explícita activada ese día con addon 16.0.1.6.0, reinicio de Odoo y nueva
-imagen web. Ver `docs/versiones.md` para referencias de imagen y rollback. Odoo necesita conservar `PROXY_MODE=true`.
+Selección flexible y traslado múltiple activados ese día con addon 16.0.1.7.0,
+reinicio de Odoo y nueva imagen web. Ver `docs/versiones.md` para referencias de imagen y rollback. Odoo necesita conservar `PROXY_MODE=true`.
 
 
 Selección flexible: OFs, pallets, ubicación y consulta tienen estados independientes.

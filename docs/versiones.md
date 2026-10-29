@@ -68,3 +68,22 @@ OFs y confirmación de traslado del grupo. Se conservan asociaciones e historial
 no hay movimientos de inventario ni cantidades por pallet. La nueva ruta POST move
 está limitada por el mismo proxy y controles de identidad. La activación del servicio
 publicado está pendiente de autorización para este incremento.
+
+
+## Selección flexible y traslado múltiple activados — 29/10/2026
+
+Rubén autorizó actualizar addon y contenedor web. Addon cmp_mrp_packages 16.0.1.7.0
+instalado en cmpslu y Odoo reiniciado con el enlace original de custom/src conservado.
+Deploy independiente cmp-pallets completado, Nginx y smoke test correctos, contenedor
+saludable. Certificado HTTPS y bundle `/assets/index-CYO-Xp2o.js` comprobados en
+https://pallets.cmp3.es; coincide con el build validado. Las rutas lookup, associate
+y move exigen sesión. Sin nuevas bases ni copias de datos/filestore.
+
+- Imagen activa: `sha256:e29a968ea2b0d9318c93d38332df1c2528a2d71970d33363d2c40486f879e801`.
+- Imagen anterior: `cmp-pallets-web:previous`, `sha256:71cae52277c1d2886ea3e3267d3fb637cc77b88f143afa25245725096d8fd82a`.
+- Rollback web: `./deploy/rollback.sh`; conserva las operaciones ya guardadas en Odoo.
+- Fuente funcional web: d8639f5; addon: 550b5f8. Las actualizaciones documentales
+  posteriores no cambian la compilación desplegada.
+
+Validación posterior al despliegue: 4 pruebas HTTP/Chromium correctas, sin errores,
+fallos ni saltos; fixtures sin cambios y GC de filestore desactivada.

@@ -306,11 +306,13 @@ separada y debe seguir las autorizaciones de la conversación. La planificación
 pendiente de selección flexible y ubicaciones se conserva sólo en local, fuera de
 Git, en `/home/rubenfernandez/CMP/datos-locales/cmp-pallets/planificacion/`.
 
-### Selección flexible y traslados preparados
+### Selección flexible y traslados activos
 
 El nuevo incremento conserva OFs, pallets y ubicación en cualquier orden de lectura.
 Con varios pallets, elegir uno como destino de las OFs. Para ubicaciones, confirmar
 el traslado de todo el grupo; los pallets ya ubicados allí no generan cambios ficticios.
 Asociar y mover son acciones independientes. Ver
 [selección y ubicaciones](docs/seleccion-y-ubicaciones.md) para uso y reintentos.
-Validar el addon 16.0.1.7.0 y reconstruir el servicio sólo al autorizar su activación.
+Activado con autorización de Rubén el 29/10/2026: addon 16.0.1.7.0 actualizado en
+cmpslu, Odoo reiniciado y servicio web reconstruido. HTTPS, sesión y ruta de
+movimiento comprobados en pallets.cmp3.es; el bundle servido coincide con el build.
