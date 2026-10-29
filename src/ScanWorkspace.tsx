@@ -40,7 +40,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   const [collector] = useState(() => createHidCollector({
     onRead: code => latest.current.read(code),
     onPartial: setPartial,
-    isKnown: code => !inFlight.current && (/^OF\d{2}-\d+$/i.test(code) || /^P\d{9,}$/.test(code) || /^CMP:(OF|PALLET|LOC):[^\r\n]+$/.test(code)),
+    isKnown: code => !inFlight.current && (/^OF\d{2}-\d+$/i.test(code) || /^P(?:\d{2}-\d{5,}|\d{9,})$/.test(code) || /^CMP:(OF|PALLET|LOC):[^\r\n]+$/.test(code)),
   }));
 
   const { focus, readerState } = useReaderFocus(input, !busy && !pending && !camera && !manual, collector);

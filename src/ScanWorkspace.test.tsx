@@ -6,14 +6,14 @@ import { ScanWorkspace } from './ScanWorkspace';
 
 const location = { id: 3, code: 'TEST-CORTE', name: 'Corte de prueba' };
 const of: ScanRecord = { revision: 'a'.repeat(64), kind: 'production', id: 1, code: 'OF99-00001', title: 'Pieza de prueba', quantity: 10, uom: 'ud.', state_label: 'En proceso', items: [], next_offset: null };
-const pallet: ScanRecord = { revision: 'b'.repeat(64), kind: 'pallet', id: 2, code: 'P209900001', title: 'Pallet', location, active: true, items: [of], next_offset: null };
+const pallet: ScanRecord = { revision: 'b'.repeat(64), kind: 'pallet', id: 2, code: 'P26-00001', title: 'Pallet', location, active: true, items: [of], next_offset: null };
 const production: ScanRecord = { ...of, items: [pallet] };
 
 function mockApi() {
   return {
     bootstrap: vi.fn(), login: vi.fn(), unlock: vi.fn(), setupPin: vi.fn(), profile: vi.fn(), lock: vi.fn(), logout: vi.fn(),
     move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
-    associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P209900001', added: 1 }),
+    associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P26-00001', added: 1 }),
     lookup: vi.fn<AccessApi['lookup']>().mockImplementation(async (_token, code) => {
       const record = [production, pallet].find(item => code === item.code || code.endsWith(':' + item.code));
       return record ? { ok: true, record } : { ok: false, error: 'QR no encontrado o sin acceso.' };
@@ -211,10 +211,10 @@ describe('live scan consultation', () => {
     open(api);
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Código de OF, pallet o ubicación'), production.code + '{Enter}');
-    api.lookup.mockResolvedValueOnce({ ok: true, record: { ...production, items: [pallet, { ...pallet, id: 4, code: 'P209900002' }] } });
+    api.lookup.mockResolvedValueOnce({ ok: true, record: { ...production, items: [pallet, { ...pallet, id: 4, code: 'P26-00002' }] } });
     await user.click(await screen.findByRole('button', { name: 'Ver más' }));
-    expect(await screen.findByRole('button', { name: /P209900002/ })).toBeVisible();
-    expect(screen.getAllByRole('button', { name: /P209900001/ })).toHaveLength(1);
+    expect(await screen.findByRole('button', { name: /P26-00002/ })).toBeVisible();
+    expect(screen.getAllByRole('button', { name: /P26-00001/ })).toHaveLength(1);
     expect(api.lookup).toHaveBeenLastCalledWith('synthetic-token', 'CMP:OF:' + production.code, 50);
   });
 });
@@ -293,7 +293,7 @@ describe('explicit OF association', () => {
 
 describe('flexible selection and group movement', () => {
   const secondOrder: ScanRecord = { ...production, id: 5, code: 'OF99-00002', revision: 'd'.repeat(64) };
-  const secondPallet: ScanRecord = { ...pallet, id: 4, code: 'P209900002', revision: 'c'.repeat(64) };
+  const secondPallet: ScanRecord = { ...pallet, id: 4, code: 'P26-00002', revision: 'c'.repeat(64) };
   const destination: ScanRecord = { kind: 'location', id: 6, code: 'TEST-DESTINO', title: 'Destino de prueba', active: true, items: [], next_offset: null };
 
   function flexibleApi() {

@@ -316,3 +316,11 @@ Asociar y mover son acciones independientes. Ver
 Activado con autorización de Rubén el 29/10/2026: addon 16.0.1.7.0 actualizado en
 cmpslu, Odoo reiniciado y servicio web reconstruido. HTTPS, sesión y ruta de
 movimiento comprobados en pallets.cmp3.es; el bundle servido coincide con el build.
+
+### Códigos de pallet
+
+Formato: **P26-00001**, P26-00002, etc., con año de dos cifras y contador anual.
+El lector reconoce el formato nuevo con Enter, Tab y lectura sin sufijo; también
+reconoce etiquetas antiguas cuando el servidor todavía conserve esos identificadores.
+La actualización del addon convierte los tres pallets de pruebas con autorización
+de Rubén, conservando sus registros e historial. Sus QR antiguos deben sustituirse.

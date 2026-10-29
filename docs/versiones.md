@@ -87,3 +87,25 @@ y move exigen sesión. Sin nuevas bases ni copias de datos/filestore.
 
 Validación posterior al despliegue: 4 pruebas HTTP/Chromium correctas, sin errores,
 fallos ni saltos; fixtures sin cambios y GC de filestore desactivada.
+
+
+## Formato de pallets P26-00001 — 29/10/2026
+
+Cambio solicitado por Rubén antes de probar: dos cifras de año, guion y contador
+anual con cinco dígitos mínimos. Autorizada la conversión de los tres identificadores
+anteriores y sustitución de sus QR. Addon 16.0.1.8.0 con migración auditada y pruebas
+que no consumen numeración real. React reconoce el código nuevo también sin Enter.
+
+Aplicado en cmpslu y publicado en https://pallets.cmp3.es. Los tres registros
+existentes se conservan con P26-00001, P26-00002 y P26-00003, auditando cada cambio;
+la vista previa nativa del siguiente código es P26-00004. Sustituir los QR anteriores.
+
+Validación: 102 pruebas Odoo y 57 React + 33 de la demo correctas; build correcto.
+Secuencia real y fixtures sin cambios por las pruebas; GC del filestore desactivada.
+Smoke test del servicio correcto, contenedor saludable y bundle HTTPS
+`/assets/index-CRjtBe59.js` idéntico al build validado.
+
+- Imagen activa: `sha256:85f6b024968d0d3d1f02b50bb7bb7a87c158504752073d7ea86f2cdf2368a37f`.
+- Imagen anterior web: `sha256:e29a968ea2b0d9318c93d38332df1c2528a2d71970d33363d2c40486f879e801`.
+- Addon funcional: a62146d, versión 16.0.1.8.0.
+- El rollback web no revierte los códigos ni los eventos auditados en Odoo.

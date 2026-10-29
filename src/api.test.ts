@@ -68,7 +68,7 @@ describe('Odoo identity API contract', () => {
 
 it('sends an explicit operation with CSRF and leaves the idempotency key unchanged', async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
-    .mockResolvedValue(ok({ ok: true, pallet_code: 'P209900001', added: 1 }));
+    .mockResolvedValue(ok({ ok: true, pallet_code: 'P26-00001', added: 1 }));
   const api = new OdooAccessApi(fetcher);
   await api.bootstrap();
   const proposal = { request_id: 'synthetic-request', pallet_id: 1, pallet_revision: 'a'.repeat(64), productions: [{ id: 2, revision: 'b'.repeat(64) }] };
