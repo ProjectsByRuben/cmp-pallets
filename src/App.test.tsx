@@ -17,6 +17,7 @@ function apiMock() {
     setupPin: vi.fn().mockResolvedValue({ ok: true, token: 'synthetic-token', profile: identity }),
     profile: vi.fn().mockResolvedValue(identity), lock: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
+    move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
     associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P209900001', added: 1 }),
     lookup: vi.fn().mockResolvedValue({ ok: false, error: 'Código no encontrado' }),
   } satisfies AccessApi;

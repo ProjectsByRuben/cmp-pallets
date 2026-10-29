@@ -47,3 +47,11 @@ la entrada sin credenciales ni escrituras de negocio.
 DNS y HTTPS de `pallets.cmp3.es` están operativos y se verificaron el 29/10/2026.
 Asociación explícita activada ese día con addon 16.0.1.6.0, reinicio de Odoo y nueva
 imagen web. Ver `docs/versiones.md` para referencias de imagen y rollback. Odoo necesita conservar `PROXY_MODE=true`.
+
+
+Selección flexible: OFs, pallets, ubicación y consulta tienen estados independientes.
+La asociación usa un único pallet de destino explícito si hay varios; el traslado
+usa el grupo completo mediante `/cmp_pallets/move`. Conservar el orden libre de
+lecturas, la separación de confirmaciones y las revisiones. «Ver» no selecciona.
+Bloquear todos los cambios mientras una respuesta perdida esté pendiente y reintentar
+la misma operación/identidad; nunca sustituirla por la acción de otro tipo.

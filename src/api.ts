@@ -28,6 +28,11 @@ export type Association = {
 };
 export type AssociationResult = { ok: true; pallet_code: string; added: number } | { ok: false; error: string; conflict?: boolean };
 
+export type Movement = {
+  request_id: string; pallets: { id: number; revision: string }[]; location_id: number;
+};
+export type MovementResult = { ok: true; moved: number; unchanged: number; location_code: string } | { ok: false; error: string; conflict?: boolean };
+
 export class ApiError extends Error {
   constructor(message: string, public kind: 'session' | 'access' | 'network' | 'business') {
     super(message);
@@ -36,6 +41,7 @@ export class ApiError extends Error {
 
 export interface AccessApi {
   associate(token: string, proposal: Association): Promise<AssociationResult>;
+  move(token: string, proposal: Movement): Promise<MovementResult>;
   bootstrap(): Promise<Bootstrap>;
   login(login: string, password: string): Promise<void>;
   unlock(employeeId: number | null, pin: string): Promise<UnlockResult>;
@@ -173,6 +179,14 @@ export class OdooAccessApi implements AccessApi {
     if (result?.ok === false && typeof result.error === 'string') return result;
     // An invalid response cannot tell us whether the operation committed.
     throw new ApiError('No se ha confirmado el resultado. Reintenta la misma petición.', 'network');
+  }
+
+  async move(token: string, proposal: Movement): Promise<MovementResult> {
+    const result = await this.rpc<MovementResult>('cmp_pallets/move', { ...proposal, token, csrf_token: this.csrf });
+    if (result?.ok === true && typeof result.location_code === 'string' && Number.isInteger(result.moved) && result.moved >= 0
+      && Number.isInteger(result.unchanged) && result.unchanged >= 0) return result;
+    if (result?.ok === false && typeof result.error === 'string') return result;
+    throw new ApiError('No se ha confirmado el traslado. Reintenta la misma petición.', 'network');
   }
 
   async lookup(token: string, code: string, offset = 0): Promise<LookupResult> {

@@ -58,3 +58,13 @@ validado y la ruta de asociación exige autenticación.
 Validación posterior al despliegue: 88 pruebas Odoo/HTTP/Chromium correctas,
 0 errores, 0 fallos y 0 omitidas; recuentos de fixtures sin cambios y GC de filestore
 desactivada. La comprobación incluye el esquema instalado del registro de peticiones.
+
+
+## Selección flexible y traslado múltiple preparados — 29/10/2026
+
+Incremento con addon 16.0.1.7.0: lecturas de OF/pallet y ubicación/pallet en ambos
+órdenes, acumulación y retirada de pallets, elección de un único destino para las
+OFs y confirmación de traslado del grupo. Se conservan asociaciones e historial;
+no hay movimientos de inventario ni cantidades por pallet. La nueva ruta POST move
+está limitada por el mismo proxy y controles de identidad. La activación del servicio
+publicado está pendiente de autorización para este incremento.

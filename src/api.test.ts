@@ -76,3 +76,19 @@ it('sends an explicit operation with CSRF and leaves the idempotency key unchang
   expect(fetcher.mock.calls[2][0]).toBe('/api/cmp_pallets/associate');
   expect(JSON.parse(fetcher.mock.calls[2][1].body).params).toEqual({ ...proposal, token: 'synthetic-token', csrf_token: 'synthetic-csrf' });
 });
+
+
+it('posts a group movement with the same-origin profile and request identity', async () => {
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
+    .mockResolvedValue(ok({ ok: true, moved: 1, unchanged: 1, location_code: 'SYNTHETIC' }));
+  const api = new OdooAccessApi(fetcher); await api.bootstrap();
+  const proposal = { request_id: 'synthetic-move', location_id: 3, pallets: [{ id: 1, revision: 'a'.repeat(64) }, { id: 2, revision: 'b'.repeat(64) }] };
+  expect(await api.move('synthetic-token', proposal)).toMatchObject({ moved: 1, unchanged: 1 });
+  expect(fetcher.mock.calls[2][0]).toBe('/api/cmp_pallets/move');
+  expect(JSON.parse(fetcher.mock.calls[2][1].body).params).toEqual({ ...proposal, token: 'synthetic-token', csrf_token: 'synthetic-csrf' });
+});
+
+it('treats malformed movement results as an unknown outcome eligible for identical retry', async () => {
+  const fetcher = vi.fn().mockResolvedValue(ok({ ok: true, moved: 'yes', location_code: 'SYNTHETIC' }));
+  await expect(new OdooAccessApi(fetcher).move('synthetic-token', { request_id: 'test', location_id: 1, pallets: [] })).rejects.toMatchObject({ kind: 'network' });
+});

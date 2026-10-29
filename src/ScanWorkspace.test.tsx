@@ -12,6 +12,7 @@ const production: ScanRecord = { ...of, items: [pallet] };
 function mockApi() {
   return {
     bootstrap: vi.fn(), login: vi.fn(), unlock: vi.fn(), setupPin: vi.fn(), profile: vi.fn(), lock: vi.fn(), logout: vi.fn(),
+    move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
     associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P209900001', added: 1 }),
     lookup: vi.fn<AccessApi['lookup']>().mockImplementation(async (_token, code) => {
       const record = [production, pallet].find(item => code === item.code || code.endsWith(':' + item.code));
@@ -286,5 +287,155 @@ describe('explicit OF association', () => {
     await scan(production.code);
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar selección' }));
     expect(api.associate).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe('flexible selection and group movement', () => {
+  const secondOrder: ScanRecord = { ...production, id: 5, code: 'OF99-00002', revision: 'd'.repeat(64) };
+  const secondPallet: ScanRecord = { ...pallet, id: 4, code: 'P209900002', revision: 'c'.repeat(64) };
+  const destination: ScanRecord = { kind: 'location', id: 6, code: 'TEST-DESTINO', title: 'Destino de prueba', active: true, items: [], next_offset: null };
+
+  function flexibleApi() {
+    const api = mockApi();
+    api.lookup.mockImplementation(async (_token, code) => {
+      const record = [production, pallet, secondOrder, secondPallet, destination].find(p => code === p.code || code.endsWith(':' + p.code));
+      return record ? { ok: true, record } : { ok: false, error: 'QR no encontrado' };
+    });
+    api.move.mockResolvedValue({ ok: true, moved: 2, unchanged: 0, location_code: destination.code });
+    return api;
+  }
+
+  async function scan(code: string) {
+    const field = screen.getByLabelText('Código de OF, pallet o ubicación');
+    fireEvent.change(field, { target: { value: code } });
+    fireEvent.submit(field.closest('form')!);
+    await waitFor(() => expect(field).not.toBeDisabled());
+  }
+
+  it.each(['pallet-first', 'orders-first'])('associates several OFs with one pallet in either order: %s', async order => {
+    const api = flexibleApi(); open(api);
+    const codes = order === 'pallet-first' ? [pallet.code, production.code, secondOrder.code] : [production.code, secondOrder.code, pallet.code];
+    for (const code of codes) await scan(code);
+    expect(screen.getByRole('heading', { name: 'OFs seleccionadas · 2' })).toBeVisible();
+    expect(api.associate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar asociación' }));
+    await screen.findByText(/Asociación confirmada en/);
+    expect(api.associate).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ pallet_id: pallet.id,
+      productions: [{ id: production.id, revision: production.revision }, { id: secondOrder.id, revision: secondOrder.revision }],
+    }));
+    expect(api.move).not.toHaveBeenCalled();
+  });
+
+  it.each(['location-first', 'pallets-first'])('moves several pallets in either order: %s', async order => {
+    const api = flexibleApi(); open(api);
+    const codes = order === 'location-first' ? [destination.code, pallet.code, secondPallet.code] : [pallet.code, secondPallet.code, destination.code];
+    for (const code of codes) await scan(code);
+    expect(screen.getByRole('heading', { name: 'Pallets seleccionados · 2' })).toBeVisible();
+    expect(api.move).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar traslado' }));
+    expect(await screen.findByText(/Traslado confirmado a/)).toBeVisible();
+    expect(api.move).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: destination.id,
+      pallets: [{ id: pallet.id, revision: pallet.revision }, { id: secondPallet.id, revision: secondPallet.revision }],
+    }));
+    expect(screen.queryByRole('region', { name: 'Pallets seleccionados' })).not.toBeInTheDocument();
+    expect(api.associate).not.toHaveBeenCalled();
+  });
+
+  it('requires an explicit single target when OFs and multiple pallets are selected', async () => {
+    const api = flexibleApi(); open(api);
+    for (const code of [pallet.code, production.code, secondPallet.code, secondOrder.code]) await scan(code);
+    expect(screen.queryByRole('button', { name: 'Confirmar asociación' })).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText('Pallet de destino para las OFs'), String(secondPallet.id));
+    await waitFor(() => expect(screen.getByLabelText('Código de OF, pallet o ubicación')).toHaveFocus());
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar asociación' }));
+    await screen.findByText(/Asociación confirmada en/);
+    expect(api.associate).toHaveBeenCalledTimes(1);
+    expect(api.associate.mock.calls[0][1].pallet_id).toBe(secondPallet.id);
+    expect(api.associate.mock.calls[0][1].productions).toHaveLength(2);
+    expect(api.move).not.toHaveBeenCalled();
+  });
+
+  it('keeps association and movement separate with all three record types selected', async () => {
+    const api = flexibleApi(); open(api);
+    for (const code of [destination.code, pallet.code, production.code]) await scan(code);
+    expect(screen.getByText(/Esta asociación conserva la ubicación actual/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Confirmar traslado' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar asociación' }));
+    await screen.findByText(/Asociación confirmada en/);
+    expect(api.associate.mock.calls[0][1]).not.toHaveProperty('location_id');
+    expect(api.move).not.toHaveBeenCalled();
+  });
+
+  it('a group move never associates the selected OFs implicitly', async () => {
+    const api = flexibleApi(); open(api);
+    for (const code of [production.code, pallet.code, destination.code]) await scan(code);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar traslado' }));
+    await screen.findByText(/Traslado confirmado a/);
+    expect(api.associate).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates readings and supports removal, immediate rescan and cancellation', async () => {
+    const api = flexibleApi(); open(api);
+    for (const code of [production.code, pallet.code, 'CMP:PALLET:' + pallet.code, destination.code]) await scan(code);
+    expect(screen.getByRole('heading', { name: 'Pallets seleccionados · 1' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar ubicación' }));
+    await scan(destination.code);
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar ' + pallet.code }));
+    await scan(pallet.code);
+    expect(screen.getByRole('heading', { name: 'OFs seleccionadas · 1' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar ' + production.code }));
+    expect(screen.getByRole('button', { name: 'Confirmar traslado' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar selección' }));
+    expect(screen.queryByRole('region', { name: 'Traslado pendiente' })).not.toBeInTheDocument();
+    expect(api.associate).not.toHaveBeenCalled(); expect(api.move).not.toHaveBeenCalled();
+  });
+
+  it('reports pallets already at destination and does not submit a zero-change movement', async () => {
+    const api = flexibleApi();
+    api.lookup.mockResolvedValueOnce({ ok: true, record: pallet }).mockResolvedValueOnce({ ok: true, record: { ...destination, id: location.id, code: location.code, title: location.name } });
+    open(api); await scan(pallet.code); await scan(location.code);
+    expect(screen.getByText('Todos los pallets seleccionados ya están en esta ubicación.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Confirmar traslado' })).toBeDisabled();
+    expect(api.move).not.toHaveBeenCalled();
+  });
+
+  it('retains the exact movement request and freezes selection after losing the response', async () => {
+    const api = flexibleApi(); api.move.mockRejectedValueOnce(new ApiError('lost response', 'network'));
+    open(api); await scan(destination.code); await scan(pallet.code);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar traslado' }));
+    const retry = await screen.findByRole('button', { name: 'Reintentar traslado' });
+    expect(screen.getByRole('button', { name: 'Quitar ubicación' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Quitar ' + pallet.code })).toBeDisabled();
+    expect(screen.queryByText(/Traslado confirmado a/)).not.toBeInTheDocument();
+    fireEvent.click(retry); await screen.findByText(/Traslado confirmado a/);
+    expect(api.move.mock.calls[0]).toEqual(api.move.mock.calls[1]);
+  });
+
+  it('requires fresh selection after a movement conflict', async () => {
+    const api = flexibleApi(); api.move.mockResolvedValueOnce({ ok: false, conflict: true, error: 'Los pallets han cambiado' });
+    open(api); await scan(pallet.code); await scan(destination.code);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar traslado' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Los pallets han cambiado');
+    expect(screen.queryByRole('region', { name: 'Pallets seleccionados' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirmar traslado' })).not.toBeInTheDocument();
+  });
+
+  it('keeps selection for a business error and does not revoke the operator profile', async () => {
+    const api = flexibleApi(); api.move.mockRejectedValueOnce(new ApiError('Destino no permitido', 'business'));
+    const { onAccessError } = open(api); await scan(destination.code); await scan(pallet.code);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar traslado' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Destino no permitido');
+    expect(screen.getByRole('region', { name: 'Pallets seleccionados' })).toBeVisible();
+    expect(onAccessError).not.toHaveBeenCalled();
+  });
+
+  it('viewing a related OF does not add it to the material selection', async () => {
+    const api = flexibleApi(); open(api); await scan(pallet.code);
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(production.code + '.*Pieza') }));
+    await screen.findByRole('heading', { name: production.code });
+    expect(screen.queryByRole('region', { name: 'Asociación pendiente' })).not.toBeInTheDocument();
+    expect(api.associate).not.toHaveBeenCalled();
   });
 });

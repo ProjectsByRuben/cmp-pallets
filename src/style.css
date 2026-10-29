@@ -100,3 +100,8 @@ input[type=password] { letter-spacing: .15em; }
 .association-selection { list-style: none; padding: 0; }
 .association-selection li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding: .5rem 0; }
 .association-success { padding: 1rem; background: #dcfce7; color: #14532d; border-radius: .75rem; }
+
+.association-selection small { display: block; color: var(--cmp-text-muted, #64748b); margin-top: .25rem; }
+.association-target { display: grid; gap: .5rem; margin: 1rem 0; }
+.association-target select { width: 100%; min-height: 48px; padding: .75rem; font: inherit; background: white; border: 1px solid #cbd5e1; border-radius: .5rem; }
+.move-summary { padding-left: 1.25rem; line-height: 1.8; }
