@@ -1,0 +1,95 @@
+worker_processes 2;
+pid /tmp/nginx.pid;
+error_log /dev/stderr warn;
+events { worker_connections 1024; }
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    server_tokens off;
+    client_body_temp_path /tmp/client-body;
+    proxy_temp_path /tmp/proxy;
+    fastcgi_temp_path /tmp/fastcgi;
+    uwsgi_temp_path /tmp/uwsgi;
+    scgi_temp_path /tmp/scgi;
+    client_max_body_size 32k;
+    client_body_buffer_size 32k;
+    log_format minimal '$remote_addr $request_method $uri $status';
+    access_log /dev/stdout minimal;
+
+    # The TLS entry proxy must preserve Host and set X-Forwarded-Proto: https.
+    # The LAN HTTP upstream is not an alternative browser login origin.
+    map "$http_host|$http_x_forwarded_proto" $secure_app_origin {
+        default 0;
+        "pallets.cmp3.es|https" 1;
+        "pallets.cmp3.es:443|https" 1;
+    }
+    map $http_x_forwarded_for $original_client {
+        "" $remote_addr;
+        default $http_x_forwarded_for;
+    }
+    map $http_origin $valid_origin {
+        default 0;
+        "" 1;
+        "https://pallets.cmp3.es" 1;
+    }
+    upstream odoo { server ${CMP_ODOO_UPSTREAM}; }
+
+    server {
+        listen 8080 default_server;
+        server_name pallets.cmp3.es;
+        absolute_redirect off;
+        root /usr/share/nginx/html;
+        index index.html;
+        include /opt/cmp/security-headers.conf;
+
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-For $original_client;
+        proxy_set_header Connection "";
+        proxy_http_version 1.1;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 30s;
+        proxy_next_upstream off;
+        proxy_buffering off;
+        proxy_cookie_flags session_id secure httponly samesite=lax;
+        proxy_hide_header Cache-Control;
+
+        location = /healthz {
+            access_log off;
+            default_type text/plain;
+            return 200 'ok\n';
+        }
+        location = /api/session/prepare {
+            if ($secure_app_origin = 0) { return 403; }
+            if ($valid_origin = 0) { return 403; }
+            if ($request_method != GET) { return 405; }
+            add_header Cache-Control no-store always;
+            include /opt/cmp/security-headers.conf;
+            proxy_pass http://odoo/web/login?db=${CMP_ODOO_DB};
+            proxy_redirect ~^https?://[^/]+/web/login.*$ /api/session/prepare;
+        }
+        location ~ ^/api/(cmp_pallets/access/(bootstrap|unlock|setup_pin|profile|lock)|cmp_pallets/(lookup|associate)|web/session/(authenticate|destroy))$ {
+            if ($secure_app_origin = 0) { return 403; }
+            if ($valid_origin = 0) { return 403; }
+            if ($request_method != POST) { return 405; }
+            add_header Cache-Control no-store always;
+            include /opt/cmp/security-headers.conf;
+            rewrite ^/api/(.*)$ /$1 break;
+            proxy_pass http://odoo;
+        }
+        location /api/ { return 404; }
+        location ~ /\. { return 404; }
+        location /assets/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            include /opt/cmp/security-headers.conf;
+            try_files $uri =404;
+        }
+        location / {
+            add_header Cache-Control no-cache;
+            include /opt/cmp/security-headers.conf;
+            try_files $uri $uri/ /index.html;
+        }
+    }
+}
