@@ -139,3 +139,18 @@ con sesión obligatoria; bundle HTTPS `/assets/index-idsKuTRj.js` idéntico al b
 - Rollback web: `./deploy/rollback.sh`; no borra pallets ni cambia su código en Odoo.
 - Sin bases/copias nuevas ni altas reales para verificar el incremento; pruebas con
   fixtures reversibles y secuencia privada.
+
+
+## Consultar cualquiera de los registros seleccionados — 29/10/2026
+
+Los códigos de los pallets/OFs seleccionados y la ubicación son botones para abrir
+su detalle actualizado. «Viendo» identifica el detalle visible; «Ver» permite cambiar
+la consulta y desplaza la página al detalle. «Quitar» continúa separado. No cambia
+el grupo ni el destino explícito de la asociación y no escribe operaciones en Odoo.
+Prueba de regresión con tres pallets, una OF y una ubicación: consulta cualquiera,
+conserva destino y selección y confirma el traslado con el mismo grupo completo.
+
+Validación: 64 pruebas React y 33 de la demo correctas, build y smoke test correctos.
+Activado en https://pallets.cmp3.es, contenedor saludable; bundle `/assets/index-DMzN7eep.js`
+idéntico al build validado. Imagen activa: `sha256:2cdb250de530a4361780d0f965091714f053b107845614902cae28ba7835a580`.
+La imagen anterior conserva creación/etiquetas; este incremento sólo cambia la web.

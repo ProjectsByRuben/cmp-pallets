@@ -36,6 +36,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   const [labelPallet, setLabelPallet] = useState<{ id: number; code: string } | null>(null);
   const [manualCode, setManualCode] = useState('');
   const input = useRef<HTMLInputElement>(null);
+  const detail = useRef<HTMLElement>(null);
   const inFlight = useRef(false);
   const version = useRef(0);
   const lastRead = useRef({ code: '', at: 0 });
@@ -86,6 +87,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
         if ((mode === 'new' || mode === 'inspect') && record) setPrevious(items => [...items.slice(-19), codeFor(record)]);
         if (mode === 'back') setPrevious(items => items.slice(0, -1));
         setRecord(result.record);
+        if (mode === 'inspect') setTimeout(() => detail.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 0);
       }
     } catch (reason) {
       if (version.current !== current) return;
@@ -218,19 +220,19 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     {!!pallets.length && <section className="record-card" aria-label="Pallets seleccionados">
       <h2>Pallets seleccionados · {pallets.length}</h2>
       <ul className="association-selection">{pallets.map(item => <li key={item.id}>
-        <span><strong>{item.code}</strong><small>{item.active === false ? 'Archivado' : item.location ? `${item.location.code} · ${item.location.name}` : 'Sin ubicación'}</small></span>
+        <button className="selected-record" disabled={busy || !!pending} aria-label={`Ver ${item.code}`} aria-pressed={record?.kind === item.kind && record.id === item.id} onClick={() => void read(codeFor(item), 'inspect')}><span><strong>{item.code}</strong><small>{item.active === false ? 'Archivado' : item.location ? `${item.location.code} · ${item.location.name}` : 'Sin ubicación'}</small></span><span className="selected-record-hint">{record?.kind === item.kind && record.id === item.id ? 'Viendo' : 'Ver →'}</span></button>
         <button className="quiet-action" disabled={busy || !!pending} aria-label={`Quitar ${item.code}`} onClick={() => removePallet(item.id)}>Quitar</button>
       </li>)}</ul>
       {!destination && <p>Escanea una ubicación para mover estos pallets, o una OF para asociarla.</p>}
     </section>}
     {destination && <section className="record-card" aria-label="Ubicación seleccionada">
-      <div className="record-heading"><div><p className="eyebrow">Ubicación seleccionada</p><strong>{destination.code} · {destination.title}</strong></div>
+      <div className="record-heading"><div><p className="eyebrow">Ubicación seleccionada</p><button className="selected-record" disabled={busy || !!pending} aria-label={`Ver ${destination.code}`} aria-pressed={record?.kind === 'location' && record.id === destination.id} onClick={() => void read(codeFor(destination), 'inspect')}><strong>{destination.code} · {destination.title}</strong><span className="selected-record-hint">{record?.kind === 'location' && record.id === destination.id ? 'Viendo' : 'Ver →'}</span></button></div>
         <button className="quiet-action" disabled={busy || !!pending} aria-label="Quitar ubicación" onClick={removeLocation}>Quitar</button></div>
       {!pallets.length && <p>Escanea uno o varios pallets para preparar el traslado.</p>}
     </section>}
     {!!selected.length && <section className="record-card" aria-label="Asociación pendiente">
       <h2>OFs seleccionadas · {selected.length}</h2>
-      <ul className="association-selection">{selected.map(item => <li key={item.id}><span>{item.code}</span><button className="quiet-action" disabled={busy || !!pending} aria-label={`Quitar ${item.code}`} onClick={() => removeOrder(item.id)}>Quitar</button></li>)}</ul>
+      <ul className="association-selection">{selected.map(item => <li key={item.id}><button className="selected-record" disabled={busy || !!pending} aria-label={`Ver ${item.code}`} aria-pressed={record?.kind === item.kind && record.id === item.id} onClick={() => void read(codeFor(item), 'inspect')}><strong>{item.code}</strong><span className="selected-record-hint">{record?.kind === item.kind && record.id === item.id ? 'Viendo' : 'Ver →'}</span></button><button className="quiet-action" disabled={busy || !!pending} aria-label={`Quitar ${item.code}`} onClick={() => removeOrder(item.id)}>Quitar</button></li>)}</ul>
       {pallets.length > 1 && <div className="association-target"><label htmlFor="target-pallet">Pallet de destino para las OFs</label>
         <select id="target-pallet" disabled={busy || !!pending} value={targetId ?? ''} onChange={event => { setTargetId(event.target.value ? Number(event.target.value) : null); setTimeout(focus, 0); }}>
           <option value="">Elige un único pallet</option>{pallets.map(p => <option key={p.id} value={p.id} disabled={p.active === false}>{p.code}</option>)}
@@ -254,7 +256,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     {hasSelection && !pending && <button className="quiet-action" disabled={busy} onClick={home}>Cancelar selección</button>}
     {error && <p className="access-error" role="alert">{error}</p>}
     {!record && !error && <div className="scan-empty"><p>Escanea una OF, un pallet o una ubicación.</p></div>}
-    {record && <section className="record-card" aria-label="Detalle de la lectura">
+    {record && <section ref={detail} className="record-card" aria-label="Detalle de la lectura">
       <div className="record-heading"><div><p className="eyebrow">{labels[record.kind]}</p><h2>{record.code}</h2></div><button className="icon-action" disabled={busy || !!pending} onClick={() => void read(codeFor(record), 'refresh')} aria-label="Actualizar consulta">↻</button></div>
       <p className="record-title">{record.title}</p>
       {record.state_label && <span className="role-badge">{record.state_label}</span>}

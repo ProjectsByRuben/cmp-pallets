@@ -346,3 +346,10 @@ del navegador permite escoger la impresora conectada o guardar como PDF. «Desca
 QR» guarda sólo el PNG del QR. No se envían trabajos directamente a una impresora
 ni se confirma su salida física. El formato para impresora de etiquetas dedicada
 se definirá más adelante.
+
+
+En las listas de pallets y OFs seleccionados, pulsa el código o «Ver» para consultar
+cualquiera de ellos. La ubicación seleccionada ofrece el mismo acceso. «Viendo»
+marca el registro cuyo detalle se muestra debajo, al que se desplaza la página.
+Consultar conserva el grupo seleccionado y el pallet de destino para las OFs;
+«Quitar» sigue siendo una acción separada. Cada consulta vuelve a leer Odoo.

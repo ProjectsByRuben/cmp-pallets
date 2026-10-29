@@ -315,6 +315,33 @@ describe('flexible selection and group movement', () => {
     await waitFor(() => expect(field).not.toBeDisabled());
   }
 
+  it('opens any of three selected pallets, OF or location without altering the operation target or group', async () => {
+    const api = flexibleApi();
+    const thirdPallet: ScanRecord = { ...pallet, id: 7, code: 'P26-00003' };
+    const lookup = api.lookup.getMockImplementation()!;
+    api.lookup.mockImplementation(async (token, code, offset) => code.endsWith(thirdPallet.code)
+      ? { ok: true, record: thirdPallet } : lookup(token, code, offset));
+    open(api);
+    for (const code of [production.code, destination.code, pallet.code, secondPallet.code, thirdPallet.code]) await scan(code);
+    expect(screen.getByRole('heading', { name: thirdPallet.code })).toBeVisible();
+    fireEvent.change(screen.getByLabelText('Pallet de destino para las OFs'), { target: { value: String(secondPallet.id) } });
+    for (const item of [pallet, thirdPallet, secondPallet, production, destination]) {
+      fireEvent.click(screen.getByRole('button', { name: 'Ver ' + item.code }));
+      await screen.findByRole('heading', { name: item.code });
+      expect(screen.getByRole('button', { name: 'Ver ' + item.code })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('region', { name: 'Pallets seleccionados' })).toHaveTextContent('Pallets seleccionados · 3');
+      expect(screen.getByLabelText('Pallet de destino para las OFs')).toHaveValue(String(secondPallet.id));
+    }
+    expect(api.associate).not.toHaveBeenCalled();
+    expect(api.move).not.toHaveBeenCalled();
+    expect(api.createPallet).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar traslado' }));
+    await screen.findByText(/Traslado confirmado/);
+    expect(api.move).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({
+      location_id: destination.id, pallets: [pallet, secondPallet, thirdPallet].map(p => ({ id: p.id, revision: p.revision })),
+    }));
+  });
+
   it.each(['pallet-first', 'orders-first'])('associates several OFs with one pallet in either order: %s', async order => {
     const api = flexibleApi(); open(api);
     const codes = order === 'pallet-first' ? [pallet.code, production.code, secondOrder.code] : [production.code, secondOrder.code, pallet.code];
