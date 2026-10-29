@@ -121,17 +121,20 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   }
 
   function removeOrder(id: number) {
+    if (selected.length === 1 && !pallets.length && !destination) { home(); return; }
     setSelected(items => items.filter(p => p.id !== id));
     lastRead.current = { code: '', at: 0 };
   }
 
   function removePallet(id: number) {
+    if (pallets.length === 1 && !selected.length && !destination) { home(); return; }
     setPallets(items => items.filter(p => p.id !== id));
     if (targetId === id) setTargetId(null);
     lastRead.current = { code: '', at: 0 };
   }
 
   function removeLocation() {
+    if (!selected.length && !pallets.length) { home(); return; }
     setDestination(null);
     lastRead.current = { code: '', at: 0 };
   }

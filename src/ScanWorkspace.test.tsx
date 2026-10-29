@@ -342,6 +342,25 @@ describe('flexible selection and group movement', () => {
     }));
   });
 
+  it.each(['pallet', 'production', 'location'])('clears the detail and navigation after removing every selection, last: %s', async last => {
+    const api = flexibleApi(); open(api);
+    for (const item of [pallet, secondPallet, production, destination]) await scan(item.code);
+    const items = [pallet, secondPallet, production, destination];
+    const final = items.find(item => item.kind === last)!;
+    for (const item of [...items.filter(item => item.id !== final.id), final]) {
+      fireEvent.click(screen.getByRole('button', { name: item.kind === 'location' ? 'Quitar ubicación' : 'Quitar ' + item.code }));
+    }
+    expect(screen.queryByRole('region', { name: 'Detalle de la lectura' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Pallets seleccionados' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Asociación pendiente' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Ubicación seleccionada' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Volver/ })).toBeDisabled();
+    expect(api.associate).not.toHaveBeenCalled();
+    expect(api.move).not.toHaveBeenCalled();
+    await scan(final.code);
+    expect(await screen.findByRole('heading', { name: final.code })).toBeVisible();
+  });
+
   it.each(['pallet-first', 'orders-first'])('associates several OFs with one pallet in either order: %s', async order => {
     const api = flexibleApi(); open(api);
     const codes = order === 'pallet-first' ? [pallet.code, production.code, secondOrder.code] : [production.code, secondOrder.code, pallet.code];

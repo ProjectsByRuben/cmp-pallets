@@ -154,3 +154,13 @@ Validación: 64 pruebas React y 33 de la demo correctas, build y smoke test corr
 Activado en https://pallets.cmp3.es, contenedor saludable; bundle `/assets/index-DMzN7eep.js`
 idéntico al build validado. Imagen activa: `sha256:2cdb250de530a4361780d0f965091714f053b107845614902cae28ba7835a580`.
 La imagen anterior conserva creación/etiquetas; este incremento sólo cambia la web.
+
+
+## Limpiar detalle al vaciar la selección — 29/10/2026
+
+Quitar el último elemento seleccionado (pallet, OF o ubicación) vuelve al estado
+inicial: cierra el detalle anterior y limpia el historial de consultas. Las pruebas
+cubren los tres tipos como último elemento y permiten volver a escanear de inmediato.
+
+Validado: 67 pruebas React y 33 de la demo, build y smoke test correctos. Activado
+en HTTPS con bundle `/assets/index-_F_wTgHc.js`, idéntico al build.
