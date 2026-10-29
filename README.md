@@ -1,7 +1,7 @@
 # CMP Pallets
 
 El proyecto contiene dos entradas independientes: **la aplicación React con acceso
-real a Odoo**, en desarrollo, y **la demo de lector QR** conservada en `dist/`.
+real a Odoo**, activa en CMP/VPN, y **la demo de lector QR** conservada en `dist/`.
 La demo publicada en Sites no se ha sustituido ni conectado a datos reales.
 
 ## Servicio compilado para CMP/VPN
@@ -13,8 +13,8 @@ Tiene reinicio `unless-stopped`, usuario sin privilegios, imagen con sistema de
 archivos de sólo lectura y temporales en memoria. No monta el código de desarrollo:
 editar `src/` no cambia esta versión hasta volver a compilar y desplegar.
 
-La URL final será **`https://pallets.cmp3.es`**. Falta configurar DNS y HTTPS en
-192.168.1.110; el servicio local ya está operativo y comprobado por la IP LAN. Su
+La URL operativa es **`https://pallets.cmp3.es`**, con DNS y HTTPS configurados en
+192.168.1.110 y servicio local comprobado por la IP LAN. Su
 API exige el hostname y marcador HTTPS del proxy y no admite iniciar sesión entrando
 directamente por la IP HTTP. La ruta `/healthz` sí responde `200` y `ok` para comprobar
 la conexión interna. El puerto 4184 sigue siendo sólo el desarrollo local con Vite.
@@ -25,7 +25,7 @@ El equipo debe seguir encendido con Docker Desktop en ejecución. Su IP actual e
 192.168.1.50 y conviene que permanezca reservada. El reinicio automático del contenedor
 actúa cuando Docker está disponible, no enciende el ordenador ni inicia Windows.
 
-Operación desde este worktree:
+Operación desde `/home/rubenfernandez/CMP/cmp-pallets`:
 
 ```bash
 # Compilar, validar la configuración, desplegar y comprobar el servicio.
@@ -259,11 +259,14 @@ La versión anterior (4, commit `c1de498`) permanece guardada en Sites y tiene u
 ## Repositorio y desarrollo
 
 Repositorio privado: https://github.com/ProjectsByRuben/cmp-pallets.
-La base `main` está en `/home/rubenfernandez/CMP/cmp-pallets`.
-El worktree para trabajar está en
-`/home/rubenfernandez/CMP/worktrees/cmp-pallets/desarrollo`,
-rama `dev/local`. Abrir `CMP-Pallets-Desarrollo.code-workspace` en la carpeta Doodba.
-Es un Git independiente: no pertenece al repositorio de Doodba ni al de OdooClaw.
+El repositorio original y la carpeta de trabajo son
+`/home/rubenfernandez/CMP/cmp-pallets`, rama `main`. Abrir
+`CMP-Pallets.code-workspace` para web y addon juntos, o
+`CMP-Pallets-Web.code-workspace` para la web sola. Ambos están en esta carpeta.
+Es un Git independiente de Doodba y de OdooClaw. No crear worktrees ni ramas de
+desarrollo para Pallets. La antigua carpeta `worktrees/cmp-pallets/desarrollo` se
+retira tras verificar las rutas; las dependencias y el build locales se conservan
+en el repositorio original. Guía de carpetas y tareas: [docs/organizacion.md](docs/organizacion.md).
 
 El código publicado actualmente en Sites corresponde al commit `4570ef1`; los cambios
 de organización y documentación no requieren volver a desplegar.
@@ -293,10 +296,9 @@ nativo del addon. El despliegue debe comprobarse con `deploy/check_service.py`.
 
 ### Trabajo definitivo en main — 29/10/2026
 
-Por instrucción de Rubén se trabaja directamente en `main`, en esta misma carpeta
-`/home/rubenfernandez/CMP/worktrees/cmp-pallets/desarrollo`. Se conserva su nombre
-para mantener las rutas de Docker y del workspace. El checkout original
-`/home/rubenfernandez/CMP/cmp-pallets` permanece de consulta, sin rama activa.
+Por instrucción de Rubén se trabaja directamente en `main`, en
+`/home/rubenfernandez/CMP/cmp-pallets`. El contenedor web usa el `compose.yaml`
+de esta carpeta. El addon se mantiene en su Git independiente dentro de Doodba.
 No crear nuevas ramas de desarrollo ni PR para Pallets. Cada cambio se revisa,
 prueba y guarda en main antes de publicarlo en ProjectsByRuben/cmp-pallets.
 GitHub conserva el código; el despliegue del contenedor sigue siendo una acción

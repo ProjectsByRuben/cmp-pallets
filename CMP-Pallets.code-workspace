@@ -1,0 +1,145 @@
+{
+  "folders": [
+    {
+      "name": "Web CMP Pallets",
+      "path": "."
+    },
+    {
+      "name": "Addon CMP Pallets",
+      "path": "../doodba-cmp/odoo/custom/src/odoo-cmp-custom/cmp_mrp_packages"
+    },
+    {
+      "name": "Plan local fuera de Git",
+      "path": "../datos-locales/cmp-pallets/planificacion"
+    }
+  ],
+  "settings": {
+    "git.autoRepositoryDetection": true,
+    "git.openRepositoryInParentFolders": "always",
+    "search.followSymlinks": false,
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/build/**": true,
+      "**/__pycache__/**": true
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Web: desarrollo local",
+        "type": "process",
+        "command": "npm",
+        "args": [
+          "run",
+          "dev"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Web CMP Pallets}"
+        },
+        "problemMatcher": [],
+        "isBackground": true
+      },
+      {
+        "label": "Web: pruebas",
+        "type": "process",
+        "command": "npm",
+        "args": [
+          "test"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Web CMP Pallets}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Web: compilar",
+        "type": "process",
+        "command": "npm",
+        "args": [
+          "run",
+          "build"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Web CMP Pallets}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Web: comprobar servicio",
+        "type": "process",
+        "command": "python3",
+        "args": [
+          "deploy/check_service.py"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Web CMP Pallets}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Web: estado del contenedor",
+        "type": "process",
+        "command": "docker",
+        "args": [
+          "compose",
+          "-f",
+          "compose.yaml",
+          "-p",
+          "cmp-pallets",
+          "ps"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Web CMP Pallets}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Web: desplegar version actual",
+        "type": "process",
+        "command": "./deploy/up.sh",
+        "args": [],
+        "options": {
+          "cwd": "${workspaceFolder:Web CMP Pallets}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Odoo: pruebas Pallets con rollback",
+        "type": "process",
+        "command": "docker",
+        "args": [
+          "compose",
+          "exec",
+          "-T",
+          "odoo",
+          "python3",
+          "/opt/odoo/auto/addons/cmp_mrp_packages/tests/run_cmpslu.py",
+          "--browser"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Addon CMP Pallets}/../../../../.."
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Odoo: comprobar fuente del addon",
+        "type": "process",
+        "command": "docker",
+        "args": [
+          "compose",
+          "exec",
+          "-T",
+          "odoo",
+          "readlink",
+          "-f",
+          "/opt/odoo/auto/addons/cmp_mrp_packages"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Addon CMP Pallets}/../../../../.."
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
+}

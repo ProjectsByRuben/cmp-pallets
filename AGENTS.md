@@ -15,13 +15,13 @@ revisiones e identidad de petición. Conservar el mismo contenido/identidad al
 reintentar una respuesta perdida y bloquear cambios mientras se desconoce el resultado.
 
 Antes de actuar: `git status --short`, `git branch --show-current` y
-`git worktree list`. Trabajar en el worktree propio
-`/home/rubenfernandez/CMP/worktrees/cmp-pallets/desarrollo`,
-rama `main`. Rubén autorizó el 29/10/2026 trabajar directamente en main y publicar
-los cambios definitivos en su fork, sin crear ramas de desarrollo ni PR para este
-proyecto. Revisar diffs y pruebas antes de cada commit/push. La carpeta
-`/home/rubenfernandez/CMP/cmp-pallets` se conserva como checkout de consulta
-sin rama activa; no desarrollar simultáneamente en ambas carpetas.
+`git worktree list`. Trabajar en `/home/rubenfernandez/CMP/cmp-pallets`, rama
+`main`. Es el repositorio original y la única carpeta de trabajo de la web.
+Rubén autorizó trabajar directamente en main y publicar cambios definitivos en su
+fork, sin crear ramas de desarrollo ni PR para Pallets. Revisar diffs y pruebas.
+Abrir `CMP-Pallets.code-workspace` para web y addon juntos, o
+`CMP-Pallets-Web.code-workspace` para editar sólo React. Las tareas nunca se ejecutan
+al abrir el workspace: se lanzan expresamente desde el editor.
 Los planes futuros no aprobados se conservan fuera de Git en
 `/home/rubenfernandez/CMP/datos-locales/cmp-pallets/planificacion/`. No usar un worktree de Doodba como Git
 de esta aplicación.

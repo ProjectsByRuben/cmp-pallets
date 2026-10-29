@@ -1,7 +1,7 @@
 # Entrada de CMP Pallets en CMP/VPN
 
-Preparación local verificada el 29 de octubre de 2026. El DNS y el proxy HTTPS
-central todavía requieren la configuración del responsable de red.
+DNS y proxy HTTPS configurados y verificados el 29 de octubre de 2026.
+Este documento conserva los datos para mantenimiento o reinstalación.
 
 ## Datos concretos
 
