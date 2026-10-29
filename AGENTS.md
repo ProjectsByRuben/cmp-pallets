@@ -55,3 +55,13 @@ usa el grupo completo mediante `/cmp_pallets/move`. Conservar el orden libre de
 lecturas, la separación de confirmaciones y las revisiones. «Ver» no selecciona.
 Bloquear todos los cambios mientras una respuesta perdida esté pendiente y reintentar
 la misma operación/identidad; nunca sustituirla por la acción de otro tipo.
+
+
+Creation and printing: createPallet uses the private server journal and a stable UUID;
+freeze its modal after any unknown outcome, allowing only the same request retry.
+Never print an invented/preview identifier. Creation opens its real label, preserves
+selected OFs and never associates implicitly. Reprint only from a readable active
+pallet and use the authenticated label endpoint. QR payload is CMP:PALLET:<code>.
+Printing currently targets A4 with a 100 × 60 mm cut-out label, at Rubén's request;
+use browser printing/PDF and QR PNG download. No direct printer integration or claim
+of physical print success. Do not expose generic Odoo report/RPC routes to get images.

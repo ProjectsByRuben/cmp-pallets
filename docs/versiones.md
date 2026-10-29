@@ -109,3 +109,33 @@ Smoke test del servicio correcto, contenedor saludable y bundle HTTPS
 - Imagen anterior web: `sha256:e29a968ea2b0d9318c93d38332df1c2528a2d71970d33363d2c40486f879e801`.
 - Addon funcional: a62146d, versión 16.0.1.8.0.
 - El rollback web no revierte los códigos ni los eventos auditados en Odoo.
+
+
+## Creación y etiquetas QR — 29/10/2026
+
+Addon 16.0.1.9.0, fuente funcional cc8f537. «＋ Crear pallet» permite confirmar un
+pallet vacío con ubicación escaneada opcional y abre su etiqueta. Conserva las OFs
+seleccionadas para la asociación explícita posterior y protege el reintento de una
+respuesta perdida con el diario privado existente. «Ver QR / Imprimir etiqueta» en
+el detalle permite reimprimir la misma identidad. El QR tipado no incorpora contenido
+ni ubicación variables. Descarga PNG y diálogo de impresión/PDF, sin servicios externos.
+
+Rubén confirma A4 e impresora actual: etiqueta 100 × 60 mm para recortar, al 100 %
+y sin encabezados/pies. La impresora dedicada y su papel se definirán más adelante.
+
+Validación previa: 109 pruebas Odoo y 63 React + 33 de la demo correctas; build
+correcto. Fixtures, secuencia real y filestore protegidos. QR leído con jsQR y PDF
+verificado con Chromium/pypdf: una página A4, con código y sin interfaz ni controles.
+No se ha probado la salida física de papel. El proxy sólo añade las rutas create/label
+con las mismas protecciones de origen, método, sesión y cabeceras.
+
+
+Activado en cmpslu y https://pallets.cmp3.es: addon instalado 16.0.1.9.0,
+Nginx validado y contenedor saludable. Smoke test correcto, incluidas create/label
+con sesión obligatoria; bundle HTTPS `/assets/index-idsKuTRj.js` idéntico al build.
+
+- Imagen activa: `sha256:023ed54ad02f96345a268afaa4bc6dfa356b01785e578aa0482555e01641177f`.
+- Imagen anterior: `sha256:85f6b024968d0d3d1f02b50bb7bb7a87c158504752073d7ea86f2cdf2368a37f`.
+- Rollback web: `./deploy/rollback.sh`; no borra pallets ni cambia su código en Odoo.
+- Sin bases/copias nuevas ni altas reales para verificar el incremento; pruebas con
+  fixtures reversibles y secuencia privada.

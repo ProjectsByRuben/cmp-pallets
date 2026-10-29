@@ -105,3 +105,32 @@ input[type=password] { letter-spacing: .15em; }
 .association-target { display: grid; gap: .5rem; margin: 1rem 0; }
 .association-target select { width: 100%; min-height: 48px; padding: .75rem; font: inherit; background: white; border: 1px solid #cbd5e1; border-radius: .5rem; }
 .move-summary { padding-left: 1.25rem; line-height: 1.8; }
+
+
+/* Pallet creation and a lasting, readable identity label. */
+.workspace-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
+.workspace-heading h1 { margin-bottom:0; }
+.workspace-heading .secondary-action { width:auto; margin:0; }
+.creation-location { display:flex; gap:12px; align-items:center; padding:12px 0; }
+.creation-location input { width:22px; height:22px; flex-shrink:0; }
+.label-modal { max-width:560px; }
+.pallet-label { box-sizing:border-box; width:100%; max-width:100mm; aspect-ratio:5/3; border:1px dashed #64748b; padding:5mm; display:flex; align-items:center; gap:3mm; background:white; color:#000; margin:16px auto; }
+.pallet-label img { width:42%; height:auto; image-rendering:pixelated; }
+.pallet-label div { display:flex; flex-direction:column; gap:3mm; min-width:0; }
+.pallet-label span { font-size:13px; font-weight:700; letter-spacing:.15em; }
+.pallet-label strong { font-size:clamp(16px, 4.5vw, 24px); overflow-wrap:anywhere; line-height:1.15; }
+.pallet-label small { font-size:11px; line-height:1.4; }
+.label-actions { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.print-help { color:var(--muted, #475569); font-size:14px; line-height:1.5; }
+@page { size:A4 portrait; margin:10mm; }
+@media print {
+  body { background:white !important; }
+  body * { visibility:hidden !important; }
+  .pallet-label, .pallet-label * { visibility:visible !important; }
+  .pallet-label { position:fixed; left:0; top:0; margin:0; width:100mm; height:60mm; max-width:none; border:0.2mm dashed #64748b; print-color-adjust:exact; }
+  .pallet-label strong { font-size:19pt; }
+  .pallet-label span { font-size:10pt; }
+  .pallet-label small { font-size:8pt; }
+  .label-backdrop, .label-modal { position:static !important; display:block !important; overflow:visible !important; max-height:none !important; padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; background:white !important; }
+  .scan-workspace { display:none !important; }
+}

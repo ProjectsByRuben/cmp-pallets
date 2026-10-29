@@ -33,6 +33,10 @@ export type Movement = {
 };
 export type MovementResult = { ok: true; moved: number; unchanged: number; location_code: string } | { ok: false; error: string; conflict?: boolean };
 
+export type PalletCreation = { request_id: string; location_id?: number };
+export type PalletCreated = { ok: true; pallet_id: number; pallet_code: string };
+export type PalletLabel = { ok: true; pallet_id: number; code: string; qr_payload: string; png_base64: string };
+
 export class ApiError extends Error {
   constructor(message: string, public kind: 'session' | 'access' | 'network' | 'business') {
     super(message);
@@ -40,6 +44,8 @@ export class ApiError extends Error {
 }
 
 export interface AccessApi {
+  createPallet(token: string, proposal: PalletCreation): Promise<PalletCreated>;
+  label(token: string, palletId: number): Promise<PalletLabel>;
   associate(token: string, proposal: Association): Promise<AssociationResult>;
   move(token: string, proposal: Movement): Promise<MovementResult>;
   bootstrap(): Promise<Bootstrap>;
@@ -187,6 +193,21 @@ export class OdooAccessApi implements AccessApi {
       && Number.isInteger(result.unchanged) && result.unchanged >= 0) return result;
     if (result?.ok === false && typeof result.error === 'string') return result;
     throw new ApiError('No se ha confirmado el traslado. Reintenta la misma petición.', 'network');
+  }
+
+  async createPallet(token: string, proposal: PalletCreation): Promise<PalletCreated> {
+    const result = await this.rpc<PalletCreated>('cmp_pallets/create', { ...proposal, token, csrf_token: this.csrf });
+    if (result?.ok === true && Number.isInteger(result.pallet_id) && result.pallet_id > 0 && typeof result.pallet_code === 'string' && /^P\d{2}-\d{5,}$/.test(result.pallet_code)) return result;
+    throw new ApiError('No se ha confirmado la creación. Reintenta la misma petición.', 'network');
+  }
+
+  async label(token: string, palletId: number): Promise<PalletLabel> {
+    const result = await this.rpc<PalletLabel>('cmp_pallets/label', { pallet_id: palletId, token, csrf_token: this.csrf });
+    if (result?.ok === true && result.pallet_id === palletId && typeof result.code === 'string'
+      && /^P\d{2}-\d{5,}$/.test(result.code) && result.qr_payload === 'CMP:PALLET:' + result.code
+      && typeof result.png_base64 === 'string' && result.png_base64.startsWith('iVBOR')
+      && result.png_base64.length < 1000000 && /^[A-Za-z0-9+/=]+$/.test(result.png_base64)) return result;
+    throw new ApiError('No se ha podido obtener la etiqueta del pallet.', 'network');
   }
 
   async lookup(token: string, code: string, offset = 0): Promise<LookupResult> {

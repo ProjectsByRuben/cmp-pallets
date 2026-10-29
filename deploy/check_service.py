@@ -69,7 +69,7 @@ def main():
         assert not redirect.netloc or redirect.netloc == "pallets.cmp3.es", "Unexpected session redirect"
         path = redirect.path + ("?" + redirect.query if redirect.query else "")
     assert status == 200 and cookies, "Anonymous database session could not be prepared"
-    for path in ("/api/cmp_pallets/access/bootstrap", "/api/cmp_pallets/lookup", "/api/cmp_pallets/associate", "/api/cmp_pallets/move"):
+    for path in ("/api/cmp_pallets/access/bootstrap", "/api/cmp_pallets/lookup", "/api/cmp_pallets/associate", "/api/cmp_pallets/move", "/api/cmp_pallets/create", "/api/cmp_pallets/label"):
         status, headers, body = request(path, "POST", forwarded=True, origin="https://pallets.cmp3.es")
         data = json.loads(body)
         name = data.get("error", {}).get("data", {}).get("name", "")

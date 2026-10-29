@@ -92,3 +92,24 @@ it('treats malformed movement results as an unknown outcome eligible for identic
   const fetcher = vi.fn().mockResolvedValue(ok({ ok: true, moved: 'yes', location_code: 'SYNTHETIC' }));
   await expect(new OdooAccessApi(fetcher).move('synthetic-token', { request_id: 'test', location_id: 1, pallets: [] })).rejects.toMatchObject({ kind: 'network' });
 });
+
+it('protects creation and label requests and rejects a label for a different identity', async () => {
+  const label = { ok: true, pallet_id: 4, code: 'P26-00004', qr_payload: 'CMP:PALLET:P26-00004', png_base64: 'iVBORw0KGgo=' };
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
+    .mockResolvedValueOnce(ok({ ok: true, pallet_id: 4, pallet_code: 'P26-00004' }))
+    .mockResolvedValueOnce(ok(label)).mockResolvedValueOnce(ok({ ...label, qr_payload: 'CMP:PALLET:P26-00099' }));
+  const api = new OdooAccessApi(fetcher); await api.bootstrap();
+  const proposal = { request_id: 'synthetic-create', location_id: 3 };
+  await expect(api.createPallet('synthetic-token', proposal)).resolves.toMatchObject({ pallet_id: 4 });
+  expect(fetcher.mock.calls[2][0]).toBe('/api/cmp_pallets/create');
+  expect(JSON.parse(fetcher.mock.calls[2][1].body).params).toEqual({ ...proposal, token: 'synthetic-token', csrf_token: 'synthetic-csrf' });
+  await expect(api.label('synthetic-token', 4)).resolves.toEqual(label);
+  expect(fetcher.mock.calls[3][0]).toBe('/api/cmp_pallets/label');
+  await expect(api.label('synthetic-token', 4)).rejects.toMatchObject({ kind: 'network' });
+});
+
+it('treats an invalid creation response as unknown outcome, keeping its request identity', async () => {
+  const fetcher = vi.fn().mockResolvedValue(ok({ ok: true, pallet_id: 4, pallet_code: null }));
+  await expect(new OdooAccessApi(fetcher).createPallet('synthetic-token', { request_id: 'synthetic-create' })).rejects.toMatchObject({ kind: 'network' });
+  expect(fetcher).toHaveBeenCalledOnce();
+});

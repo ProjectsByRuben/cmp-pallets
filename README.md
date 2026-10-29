@@ -324,3 +324,25 @@ El lector reconoce el formato nuevo con Enter, Tab y lectura sin sufijo; tambié
 reconoce etiquetas antiguas cuando el servidor todavía conserve esos identificadores.
 La actualización del addon convierte los tres pallets de pruebas con autorización
 de Rubén, conservando sus registros e historial. Sus QR antiguos deben sustituirse.
+
+
+## Crear pallets e imprimir QR
+
+«＋ Crear pallet» solicita el siguiente código a Odoo y crea un pallet vacío. Si
+hay una ubicación escaneada, puede aceptarse para el alta; las OFs se conservan en
+la selección y se asocian después mediante la confirmación habitual. No se elige
+manualmente el código. Ante una respuesta perdida, usar «Reintentar creación»;
+la misma petición no crea un segundo pallet.
+
+Al crear se abre su etiqueta. Al consultar un pallet activo, «Ver QR / Imprimir
+etiqueta» permite reimprimir la misma identidad sin crear otro registro. El QR
+contiene CMP:PALLET:<código>, con el código legible en grande; no contiene OFs,
+ubicaciones cambiantes ni credenciales. La imagen se genera en el Odoo de pruebas
+sin servicios externos y pasa por una ruta limitada con perfil y permisos nativos.
+
+Por decisión de Rubén, inicialmente se imprime una etiqueta de 100 × 60 mm sobre
+una hoja A4, con borde para recortar: escala 100 % y sin encabezados/pies. El diálogo
+del navegador permite escoger la impresora conectada o guardar como PDF. «Descargar
+QR» guarda sólo el PNG del QR. No se envían trabajos directamente a una impresora
+ni se confirma su salida física. El formato para impresora de etiquetas dedicada
+se definirá más adelante.

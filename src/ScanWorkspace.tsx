@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createHidCollector } from '../dist/hid.mjs';
 import { ApiError, type Association, type Movement, type AccessApi, type Profile, type ScanRecord, type ScanSummary } from './api';
+import { CreatePalletDialog, PalletLabelDialog } from './PalletDialogs';
 import { Camera } from './Camera';
 import { modalKeys } from './modal';
 import { useReaderFocus } from './useReaderFocus';
@@ -31,6 +32,8 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   const [busy, setBusy] = useState(false);
   const [camera, setCamera] = useState(false);
   const [manual, setManual] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [labelPallet, setLabelPallet] = useState<{ id: number; code: string } | null>(null);
   const [manualCode, setManualCode] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
@@ -43,7 +46,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     isKnown: code => !inFlight.current && (/^OF\d{2}-\d+$/i.test(code) || /^P(?:\d{2}-\d{5,}|\d{9,})$/.test(code) || /^CMP:(OF|PALLET|LOC):[^\r\n]+$/.test(code)),
   }));
 
-  const { focus, readerState } = useReaderFocus(input, !busy && !pending && !camera && !manual, collector);
+  const { focus, readerState } = useReaderFocus(input, !busy && !pending && !camera && !manual && !creating && !labelPallet, collector);
 
   async function read(code: string, mode: 'new' | 'back' | 'refresh' | 'more' | 'inspect' = 'new') {
     if (inFlight.current || pending) return;
@@ -101,8 +104,8 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     return () => { version.current++; collector.clear(); };
   }, []);
   useEffect(() => {
-    if (!camera && !manual && !busy) focus();
-  }, [camera, manual, busy]);
+    if (!camera && !manual && !creating && !labelPallet && !busy) focus();
+  }, [camera, manual, creating, labelPallet, busy]);
 
   function home() {
     collector.clear();
@@ -193,13 +196,13 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
 
   function closeManual() { setManual(false); setManualCode(''); }
 
-  return <main className="scan-workspace">
+  return <><main className="scan-workspace" inert={creating || !!labelPallet}>
     <div className="operator-bar"><div><strong>{profile.name}</strong><span>{profile.role === 'admin' ? 'Administrador' : 'Operario'}</span></div><button className="quiet-action" disabled={busy || switching || !!pending} onClick={onSwitch}>Cambiar operario</button></div>
     <nav className="scan-navigation" aria-label="Navegación de consultas">
       <button className="quiet-action" disabled={busy || !!pending || !previous.length} onClick={() => void read(previous.at(-1)!, 'back')}>← Volver</button>
       <button className="quiet-action" disabled={busy || !!pending} onClick={home}>⌂ Inicio</button>
     </nav>
-    <h1>Escanear</h1>
+    <div className="workspace-heading"><h1>Escanear</h1><button className="secondary-action" disabled={busy || !!pending || pallets.length >= 100} onClick={() => { collector.clear(); setCreating(true); }}>＋ Crear pallet</button></div>
     <section className="live-reader" aria-label="Lector QR">
       <p className="reader-indicator" role="status" aria-label="Estado del lector" data-ready={readerState === 'ready'}><span aria-hidden="true"/>{readerState === 'inactive' ? 'Activa esta página para leer' : busy ? 'Consultando Odoo…' : readerState === 'paused' ? 'Lector en pausa' : readerState === 'unfocused' ? 'Selecciona la casilla para leer' : 'Preparado para leer'}</p>
       <form onSubmit={event => { event.preventDefault(); void read(partial); }}>
@@ -258,6 +261,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
       {record.active === false && <p className="archived-badge">Archivado</p>}
       {record.kind === 'production' && <dl className="record-facts"><div><dt>Cantidad de la OF</dt><dd>{new Intl.NumberFormat('es-ES', { maximumFractionDigits: 3 }).format(record.quantity ?? 0)} {record.uom}</dd></div>{record.lot && <div><dt>Lote / serie</dt><dd>{record.lot}</dd></div>}</dl>}
       {record.kind === 'pallet' && <dl className="record-facts"><div><dt>Ubicación</dt><dd>{record.location ? `${record.location.code} · ${record.location.name}` : 'Sin ubicación disponible'}</dd></div></dl>}
+      {record.kind === 'pallet' && record.active !== false && <button className="secondary-action" disabled={busy || !!pending} onClick={() => { collector.clear(); setLabelPallet({ id: record.id, code: record.code }); }}>Ver QR / Imprimir etiqueta</button>}
       <h3>{record.kind === 'pallet' ? 'Órdenes de fabricación' : 'Pallets'}</h3>
       {!record.items.length && <p className="empty-relation">{record.kind === 'pallet' ? 'Sin OF disponibles' : 'Sin pallets disponibles'}</p>}
       <ul className="record-list">{record.items.map(item => <li key={`${item.kind}:${item.id}`}><button disabled={busy || !!pending} onClick={() => void read(codeFor(item), 'inspect')}><span><strong>{item.code}</strong><small>{item.kind === 'pallet' ? item.location ? `${item.location.code} · ${item.location.name}` : 'Sin ubicación disponible' : item.title}</small></span><span className="list-status">{item.active === false ? 'Archivado' : item.state_label || 'Ver'} →</span></button></li>)}</ul>
@@ -266,5 +270,11 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     <footer className="scan-footer"><button className="quiet-action" disabled={busy || switching || !!pending} onClick={onChangeAccount}>Cambiar cuenta</button></footer>
     {manual && <div className="modal-backdrop"><section className="scan-modal" role="dialog" aria-modal="true" aria-labelledby="manual-title" onKeyDown={event => modalKeys(event, closeManual)}><div className="modal-heading"><h2 id="manual-title">Introducir código</h2><button className="icon-action" aria-label="Cerrar entrada manual" onClick={closeManual}>×</button></div><form onSubmit={submitManual}><label htmlFor="manual-code">OF, pallet o ubicación</label><input id="manual-code" autoFocus autoComplete="off" autoCapitalize="none" spellCheck={false} value={manualCode} onChange={event => setManualCode(event.target.value)} required maxLength={256}/><button className="primary-action" disabled={!manualCode.trim()}>Consultar</button></form></section></div>}
     {camera && <Camera onClose={() => setCamera(false)} onRead={code => { setCamera(false); void read(code); }}/>}
-  </main>;
+  </main>
+    {creating && <CreatePalletDialog api={api} token={token} destination={destination} onClose={() => setCreating(false)} onAccessError={onAccessError} onCreated={result => {
+      setCreating(false); setTargetId(result.pallet_id); setLabelPallet({ id: result.pallet_id, code: result.pallet_code });
+      void read('CMP:PALLET:' + result.pallet_code);
+    }}/>}
+    {labelPallet && <PalletLabelDialog api={api} token={token} pallet={labelPallet} onClose={() => setLabelPallet(null)} onAccessError={onAccessError}/>}
+  </>;
 }
