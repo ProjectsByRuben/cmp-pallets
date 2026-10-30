@@ -189,3 +189,16 @@ Activado en cmpslu y https://pallets.cmp3.es, addon 16.0.1.10.0 instalado,
 contenedor saludable y smoke test correcto, incluida locations con sesión obligatoria.
 Bundle HTTPS `/assets/index-Dsv9_4-2.js` idéntico al build validado.
 Imagen activa: `sha256:4921d7ba4c89100bc0162d90e1b9624e940a175c584f9092f731cfd74948f41e`.
+
+
+## Lector activo al abrir Crear pallet — 30/10/2026
+
+El campo de ubicación recibe el foco al abrir la creación; el botón de confirmar
+ya no le roba el foco. Usa el mismo control de foco que el lector principal y muestra
+su indicador de disponibilidad. Enter y Tab aceptan el QR de ubicación sin crear
+el pallet automáticamente. La carga del catálogo no descarta una lectura. Durante
+un alta pendiente o un resultado incierto sigue bloqueado. Validación: 76 pruebas
+React y 33 de la demo correctas; build correcto.
+
+Activado en HTTPS: `/assets/index-DyZ4jYtL.js` coincide con el build; contenedor saludable
+y smoke test correcto.

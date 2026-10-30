@@ -644,6 +644,22 @@ describe('mandatory placement for unlocated pallets', () => {
     await read(empty.code);
     expect(screen.getByRole('region', { name: 'Ubicación obligatoria' })).toBeVisible();
   });
+  it.each(['{Enter}', '{Tab}'])('focuses the creation location reader immediately and accepts a scan ending with %s', async suffix => {
+    const api = fixture(); open(api);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    const reader = screen.getByLabelText('Buscar o escanear ubicación existente');
+    await waitFor(() => expect(reader).toHaveFocus());
+    expect(screen.getByRole('status', { name: 'Estado del lector de ubicación' })).toHaveAttribute('data-ready', 'true');
+    await user.keyboard('CMP:LOC:' + location.code + suffix);
+    await screen.findByText('Ubicación elegida:');
+    expect(screen.getByRole('dialog')).toHaveTextContent(location.code);
+    expect(api.createPallet).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
+    await screen.findByRole('dialog', { name: /Etiqueta/ });
+    expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));
+  });
+
   it('creates with an existing location chosen from the catalog without scanning it beforehand', async () => {
     const api = fixture(); open(api);
     fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));

@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { useReaderFocus } from './useReaderFocus';
 import { ApiError, type AccessApi, type LocationPage, type LocationSummary } from './api';
 
-export function LocationPicker({ api, token, value, onChange, disabled = false, onAccessError }: {
+export function LocationPicker({ api, token, value, onChange, disabled = false, autoFocus = false, onAccessError }: {
   api: AccessApi; token: string; value: LocationSummary | null; onChange(location: LocationSummary | null): void;
-  disabled?: boolean; onAccessError(error: ApiError): void;
+  disabled?: boolean; autoFocus?: boolean; onAccessError(error: ApiError): void;
 }) {
   const id = useId();
   const [query, setQuery] = useState('');
@@ -12,6 +13,12 @@ export function LocationPicker({ api, token, value, onChange, disabled = false, 
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
   const version = useRef(0);
+  const input = useRef<HTMLInputElement>(null);
+  const reading = useRef(false);
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  const [collector] = useState(() => ({ get value() { return queryRef.current; }, setValue: setQuery, clear: () => setQuery('') }));
+  const { readerState } = useReaderFocus(input, autoFocus && !disabled, collector);
   function fail(reason: unknown) {
     if (reason instanceof ApiError && ['session', 'access'].includes(reason.kind)) onAccessError(reason);
     else setError(reason instanceof Error ? reason.message : 'No se pudo consultar la ubicación.');
@@ -41,7 +48,8 @@ export function LocationPicker({ api, token, value, onChange, disabled = false, 
     finally { if (current === version.current) setBusy(false); }
   }
   async function scan() {
-    if (disabled || busy || !query.trim()) return;
+    if (disabled || reading.current || !query.trim()) return;
+    reading.current = true;
     const current = ++version.current;
     setBusy(true); setError('');
     try {
@@ -50,13 +58,15 @@ export function LocationPicker({ api, token, value, onChange, disabled = false, 
       if (!result.ok) { setError(result.error); return; }
       if (result.record.kind !== 'location' || result.record.active === false) { setError('Escanea una ubicación activa. Esta lectura no se ha añadido.'); return; }
       onChange({ id: result.record.id, code: result.record.code, name: result.record.title });
+      setQuery('');
     } catch (reason) { if (current === version.current) fail(reason); }
-    finally { if (current === version.current) setBusy(false); }
+    finally { reading.current = false; if (current === version.current) setBusy(false); }
   }
   return <div className="location-picker">
+    {autoFocus && <p className="reader-indicator" role="status" aria-label="Estado del lector de ubicación" data-ready={readerState === 'ready'}><span aria-hidden="true"/>{readerState === 'ready' ? 'Preparado para escanear ubicación' : readerState === 'inactive' ? 'Activa esta ventana para escanear' : readerState === 'paused' ? 'Lector en pausa' : 'Selecciona el campo para escanear'}</p>}
     <label htmlFor={id}>Buscar o escanear ubicación existente</label>
     <form onSubmit={event => { event.preventDefault(); void scan(); }}>
-      <input id={id} value={query} disabled={disabled} maxLength={100} autoComplete="off" onChange={event => setQuery(event.target.value)} placeholder="Código o nombre de ubicación"/>
+      <input ref={input} autoFocus={autoFocus} id={id} value={query} disabled={disabled} maxLength={100} autoComplete="off" onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Tab' && query.trim()) { event.preventDefault(); void scan(); } }} placeholder="Código o nombre de ubicación"/>
       <button className="quiet-action" disabled={disabled || busy || !query.trim()}>Consultar código</button>
     </form>
     {value && <p>Ubicación elegida: <strong>{value.code} · {value.name}</strong> <button type="button" className="quiet-action" disabled={disabled} onClick={() => onChange(null)}>Sin ubicación</button></p>}

@@ -35,11 +35,11 @@ export function CreatePalletDialog({ api, token, destination, onClose, onCreated
   return <div className="modal-backdrop"><section className="scan-modal" role="dialog" aria-modal="true" aria-labelledby="create-pallet-title" onKeyDown={event => modalKeys(event, close)}>
     <div className="modal-heading"><h2 id="create-pallet-title">Crear pallet</h2><button className="icon-action" aria-label="Cerrar creación" disabled={locked} onClick={close}>×</button></div>
     <p>Odoo asignará el siguiente código. El pallet se creará vacío y después podrás imprimir su etiqueta.</p>
-    <LocationPicker api={api} token={token} value={location} onChange={setLocation} disabled={locked} onAccessError={onAccessError}/>
+    <LocationPicker autoFocus api={api} token={token} value={location} onChange={setLocation} disabled={locked} onAccessError={onAccessError}/>
     {!location && <p>Se creará sin ubicación. Al escanearlo para trabajar, deberás elegir una ubicación antes de continuar.</p>}
     <p>Las OFs seleccionadas se conservarán para asociarlas después de crear el pallet.</p>
     {error && <p className="access-error" role="alert">{error}</p>}
-    <button className="primary-action" autoFocus disabled={busy} onClick={() => void create()}>{busy ? 'Creando en Odoo…' : proposal ? 'Reintentar creación' : 'Crear pallet y ver etiqueta'}</button>
+    <button className="primary-action" disabled={busy} onClick={() => void create()}>{busy ? 'Creando en Odoo…' : proposal ? 'Reintentar creación' : 'Crear pallet y ver etiqueta'}</button>
     {!locked && <button className="quiet-action" onClick={close}>Cancelar</button>}
   </section></div>;
 }
