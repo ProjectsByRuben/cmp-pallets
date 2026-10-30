@@ -217,3 +217,21 @@ lecturas erróneas seguidas de correctas, sustitución, retirada y respuestas fu
 
 Activado en HTTPS, bundle `/assets/index-yonhv_YP.js` verificado contra el build,
 contenedor saludable y smoke test correcto.
+
+
+## Cambiar cuenta sin error de respuesta — 30/10/2026
+
+Odoo 16 /web/session/destroy devuelve None y su despachador JSON omite result.
+El adaptador trataba el cierre correcto como respuesta inválida y no alcanzaba el
+formulario de acceso ni limpiaba su preparación/CSRF. Se acepta únicamente el sobre
+void esperado de ese endpoint (jsonrpc=2.0, id=1, sin error); las otras rutas siguen
+exigiendo result. Una sesión ya caducada también permite volver al acceso; errores
+reales de red o respuestas malformadas se siguen mostrando. Tras cierre confirmado
+se limpian CSRF y preparación de sesión para la siguiente cuenta.
+
+Validación: 86 pruebas React y 33 de la demo correctas; build correcto. Incluye
+cambio de cuenta con el adaptador real, respuesta void nativa, segundo acceso sin
+recarga, renovación de CSRF, sesión caducada y rechazo de respuestas inválidas.
+
+Activado en HTTPS con bundle `/assets/index-BvY8EKst.js` idéntico al build validado,
+contenedor saludable y smoke test correcto.

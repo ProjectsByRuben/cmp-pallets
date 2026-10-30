@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { ApiError, type AccessApi, type Bootstrap } from './api';
+import { ApiError, OdooAccessApi, type AccessApi, type Bootstrap } from './api';
 
 const initial: Bootstrap = {
   user: { id: 10, name: 'FABRICA PRUEBAS' }, requires_pin: true, csrf_token: 'synthetic-csrf',
@@ -206,4 +206,32 @@ describe('operator access screen', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No hay empleados con acceso');
     await waitFor(() => expect(screen.queryByText('Escanear')).not.toBeInTheDocument());
   });
+});
+
+
+it('changes account using the real API adapter and Odoo void logout without reloading', async () => {
+  let signedInAsSecond = false;
+  const json = (result: unknown) => new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result }));
+  const fetcher = vi.fn().mockImplementation(async (path: string) => {
+    if (path === '/api/session/prepare') return new Response('login');
+    if (path === '/api/web/session/destroy') return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1 }));
+    if (path === '/api/web/session/authenticate') { signedInAsSecond = true; return json({ uid: 11 }); }
+    if (path === '/api/cmp_pallets/access/bootstrap') return json({ ...initial, requires_pin: false, csrf_token: signedInAsSecond ? 'csrf-second' : 'csrf-first' });
+    if (path === '/api/cmp_pallets/access/unlock') return json({ ok: true, token: signedInAsSecond ? 'token-second' : 'token-first', profile: { ...identity, name: signedInAsSecond ? 'Second operator' : 'First operator' } });
+    throw new Error('Unexpected endpoint ' + path);
+  });
+  const user = userEvent.setup();
+  render(<App api={new OdooAccessApi(fetcher)}/>);
+  await screen.findByRole('heading', { name: 'Escanear' });
+  await user.click(screen.getByRole('button', { name: 'Cambiar cuenta' }));
+  expect(await screen.findByLabelText('Usuario Odoo')).toBeVisible();
+  expect(screen.queryByRole('heading', { name: 'Sin conexión' })).not.toBeInTheDocument();
+  expect(screen.queryByText('First operator')).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('Usuario Odoo'), 'second-test-account');
+  await user.type(screen.getByLabelText('Contraseña'), 'synthetic-password');
+  await user.click(screen.getByRole('button', { name: 'Acceder' }));
+  await screen.findByRole('heading', { name: 'Escanear' });
+  expect(screen.getByText('Second operator')).toBeVisible();
+  const unlockCalls = fetcher.mock.calls.filter(call => call[0] === '/api/cmp_pallets/access/unlock');
+  expect(JSON.parse(unlockCalls.at(-1)![1].body).params.csrf_token).toBe('csrf-second');
 });

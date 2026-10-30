@@ -123,3 +123,34 @@ it('requests the protected location catalog with CSRF and pagination', async () 
   expect(JSON.parse(fetcher.mock.calls[2][1].body).params).toEqual({ token: 'synthetic-token', query: 'CORTE', offset: 0, csrf_token: 'synthetic-csrf' });
   await expect(api.locations('synthetic-token')).rejects.toMatchObject({ kind: 'network' });
 });
+
+
+it('accepts native Odoo void logout and prepares a fresh session with fresh CSRF afterwards', async () => {
+  const response = () => new Response(JSON.stringify({ jsonrpc: '2.0', id: 1 }));
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
+    .mockResolvedValueOnce(response()).mockResolvedValueOnce(new Response('new login'))
+    .mockResolvedValueOnce(ok({ ...bootstrap, csrf_token: 'new-synthetic-csrf' }))
+    .mockResolvedValueOnce(ok({ ok: true, token: 'new-token', profile: { employee_id: 30, name: 'New operator', role: 'operator' } }));
+  const api = new OdooAccessApi(fetcher); await api.bootstrap();
+  await expect(api.logout()).resolves.toBeUndefined();
+  expect(fetcher.mock.calls[2][0]).toBe('/api/web/session/destroy');
+  await api.bootstrap();
+  expect(fetcher.mock.calls[3][0]).toBe('/api/session/prepare');
+  await api.unlock(30, '1234');
+  expect(JSON.parse(fetcher.mock.calls[5][1].body).params.csrf_token).toBe('new-synthetic-csrf');
+});
+
+it('accepts logout if the native session is already expired', async () => {
+  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { data: { name: 'odoo.http.SessionExpiredException' } } })));
+  await expect(new OdooAccessApi(fetcher).logout()).resolves.toBeUndefined();
+});
+
+it('still rejects malformed logout and missing results on other endpoints, and reports real network failures', async () => {
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response('{}'))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ jsonrpc: '2.0', id: 1 })))
+    .mockRejectedValueOnce(new TypeError('offline'));
+  const api = new OdooAccessApi(fetcher);
+  await expect(api.logout()).rejects.toMatchObject({ kind: 'network' });
+  await expect(api.profile('synthetic-token')).rejects.toMatchObject({ kind: 'network' });
+  await expect(api.logout()).rejects.toMatchObject({ kind: 'network' });
+});

@@ -109,6 +109,11 @@ export class OdooAccessApi implements AccessApi {
       const safe = name.endsWith('AccessError') || name.endsWith('UserError');
       throw new ApiError(safe && typeof data.error.data.message === 'string' ? data.error.data.message : 'No se ha podido completar el acceso.', name.endsWith('UserError') ? 'business' : 'access');
     }
+    // Odoo 16 session.destroy returns None; its JSON dispatcher omits result.
+    // Accept that exact successful void envelope only for this native endpoint.
+    if (path === 'web/session/destroy' && data.jsonrpc === '2.0' && data.id === 1 && !Object.hasOwn(data, 'result')) {
+      return undefined as T;
+    }
     if (!Object.hasOwn(data, 'result')) {
       throw new ApiError('La respuesta de Odoo no es válida.', 'network');
     }
@@ -177,7 +182,12 @@ export class OdooAccessApi implements AccessApi {
   }
 
   async logout(): Promise<void> {
-    await this.rpc('web/session/destroy');
+    try {
+      await this.rpc('web/session/destroy');
+    } catch (reason) {
+      // An already expired session has no account left to sign out of.
+      if (!(reason instanceof ApiError) || reason.kind !== 'session') throw reason;
+    }
     this.csrf = '';
     this.prepared = false;
   }
