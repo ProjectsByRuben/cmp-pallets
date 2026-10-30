@@ -14,18 +14,19 @@ export function LocationPicker({ api, token, value, onChange, disabled = false, 
   const [retry, setRetry] = useState(0);
   const version = useRef(0);
   const input = useRef<HTMLInputElement>(null);
-  const reading = useRef(false);
+  const scanVersion = useRef(0);
+  const [scanning, setScanning] = useState(false);
   const queryRef = useRef(query);
   queryRef.current = query;
   const [collector] = useState(() => ({ get value() { return queryRef.current; }, setValue: setQuery, clear: () => setQuery('') }));
-  const { readerState } = useReaderFocus(input, autoFocus && !disabled, collector);
+  const { focus, readerState } = useReaderFocus(input, autoFocus && !disabled, collector);
   function fail(reason: unknown) {
     if (reason instanceof ApiError && ['session', 'access'].includes(reason.kind)) onAccessError(reason);
     else setError(reason instanceof Error ? reason.message : 'No se pudo consultar la ubicación.');
   }
   useEffect(() => {
     const current = ++version.current;
-    setPage(null); setError(''); setBusy(false);
+    setPage(null); setBusy(false);
     if (disabled) return;
     const timer = setTimeout(() => {
       if (current !== version.current) return;
@@ -47,32 +48,45 @@ export function LocationPicker({ api, token, value, onChange, disabled = false, 
     } catch (reason) { if (current === version.current) fail(reason); }
     finally { if (current === version.current) setBusy(false); }
   }
+  useEffect(() => {
+    if (disabled) { scanVersion.current++; setScanning(false); }
+    return () => { scanVersion.current++; };
+  }, [disabled]);
+
+  function choose(location: LocationSummary | null) {
+    scanVersion.current++;
+    setScanning(false); setError(''); setQuery('');
+    onChange(location);
+    setTimeout(focus, 0);
+  }
   async function scan() {
-    if (disabled || reading.current || !query.trim()) return;
-    reading.current = true;
-    const current = ++version.current;
-    setBusy(true); setError('');
+    if (disabled || !query.trim()) return;
+    const code = query.trim();
+    const current = ++scanVersion.current;
+    // Consume the read immediately, including unknown/non-location codes. A new
+    // read can supersede this one without concatenating codes or stale replies.
+    setQuery(''); setScanning(true); setError('');
     try {
-      const result = await api.lookup(token, query.trim());
-      if (current !== version.current) return;
+      const result = await api.lookup(token, code);
+      if (current !== scanVersion.current) return;
       if (!result.ok) { setError(result.error); return; }
       if (result.record.kind !== 'location' || result.record.active === false) { setError('Escanea una ubicación activa. Esta lectura no se ha añadido.'); return; }
       onChange({ id: result.record.id, code: result.record.code, name: result.record.title });
-      setQuery('');
-    } catch (reason) { if (current === version.current) fail(reason); }
-    finally { reading.current = false; if (current === version.current) setBusy(false); }
+    } catch (reason) { if (current === scanVersion.current) fail(reason); }
+    finally { if (current === scanVersion.current) { setScanning(false); setTimeout(focus, 0); } }
   }
   return <div className="location-picker">
     {autoFocus && <p className="reader-indicator" role="status" aria-label="Estado del lector de ubicación" data-ready={readerState === 'ready'}><span aria-hidden="true"/>{readerState === 'ready' ? 'Preparado para escanear ubicación' : readerState === 'inactive' ? 'Activa esta ventana para escanear' : readerState === 'paused' ? 'Lector en pausa' : 'Selecciona el campo para escanear'}</p>}
     <label htmlFor={id}>Buscar o escanear ubicación existente</label>
     <form onSubmit={event => { event.preventDefault(); void scan(); }}>
-      <input ref={input} autoFocus={autoFocus} id={id} value={query} disabled={disabled} maxLength={100} autoComplete="off" onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Tab' && query.trim()) { event.preventDefault(); void scan(); } }} placeholder="Código o nombre de ubicación"/>
-      <button className="quiet-action" disabled={disabled || busy || !query.trim()}>Consultar código</button>
+      <input ref={input} autoFocus={autoFocus} id={id} value={query} disabled={disabled} maxLength={100} autoComplete="off" onChange={event => { setError(''); setQuery(event.target.value); }} onKeyDown={event => { if (event.key === 'Tab' && query.trim()) { event.preventDefault(); void scan(); } }} placeholder="Código o nombre de ubicación"/>
+      <button className="quiet-action" disabled={disabled || !query.trim()}>Consultar código</button>
     </form>
-    {value && <p>Ubicación elegida: <strong>{value.code} · {value.name}</strong> <button type="button" className="quiet-action" disabled={disabled} onClick={() => onChange(null)}>Sin ubicación</button></p>}
+    {value && <p>Ubicación elegida: <strong>{value.code} · {value.name}</strong> <button type="button" className="quiet-action" disabled={disabled} onClick={() => choose(null)}>Quitar ubicación</button></p>}
+    {scanning && <p role="status">Consultando código de ubicación…</p>}
     {busy && <p role="status">Buscando ubicaciones…</p>}
     {error && <p className="access-error" role="alert">{error} <button type="button" className="quiet-action" disabled={disabled || busy} onClick={() => setRetry(n => n + 1)}>Reintentar búsqueda</button></p>}
-    <ul className="location-options">{page?.items.map(item => <li key={item.id}><button type="button" className="selected-record" disabled={disabled || busy} aria-label={`Elegir ubicación ${item.code}`} aria-pressed={value?.id === item.id} onClick={() => onChange(item)}><strong>{item.code}</strong><span>{item.name}</span></button></li>)}</ul>
+    <ul className="location-options">{page?.items.map(item => <li key={item.id}><button type="button" className="selected-record" disabled={disabled || busy} aria-label={`Elegir ubicación ${item.code}`} aria-pressed={value?.id === item.id} onClick={() => choose(item)}><strong>{item.code}</strong><span>{item.name}</span></button></li>)}</ul>
     {page && !page.items.length && !busy && <p>No hay ubicaciones disponibles para esta búsqueda.</p>}
     {page?.next_offset != null && <button type="button" className="quiet-action" disabled={disabled || busy} onClick={() => void more()}>Más ubicaciones</button>}
   </div>;

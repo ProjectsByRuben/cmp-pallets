@@ -202,3 +202,18 @@ React y 33 de la demo correctas; build correcto.
 
 Activado en HTTPS: `/assets/index-DyZ4jYtL.js` coincide con el build; contenedor saludable
 y smoke test correcto.
+
+
+## Corregir lecturas del selector de ubicación — 30/10/2026
+
+El campo consume y limpia cada lectura de inmediato, también ante códigos desconocidos,
+OFs, pallets o ubicaciones archivadas. Sólo acepta una ubicación activa, reemplazando
+la anterior si se lee otra válida. «Quitar ubicación» permite dejarla sin seleccionar
+y devuelve el foco al lector. Las respuestas antiguas de consultas superadas no
+sobrescriben una lectura posterior. Catálogo y validación del QR tienen generaciones
+independientes, para que limpiar/buscar no anule el resultado del escaneo.
+Validación: 82 pruebas React y 33 de la demo correctas; build correcto. Incluye
+lecturas erróneas seguidas de correctas, sustitución, retirada y respuestas fuera de orden.
+
+Activado en HTTPS, bundle `/assets/index-yonhv_YP.js` verificado contra el build,
+contenedor saludable y smoke test correcto.

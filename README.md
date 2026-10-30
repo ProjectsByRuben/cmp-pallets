@@ -374,3 +374,8 @@ Si se pierde la respuesta del guardado, se bloquean cambios y se reintenta la mi
 petición. Las revisiones y permisos se validan de nuevo en Odoo; un fallo no deja
 asociaciones a medio guardar. La creación no abre automáticamente esta petición de
 ubicación: permite imprimir primero la etiqueta y resolverla cuando se escanee el pallet.
+
+
+El selector de ubicación vacía el campo tras cada lectura, válida o errónea. Sólo
+marca una ubicación activa: leer otra válida sustituye la anterior. «Quitar ubicación»
+permite corregirla antes de confirmar. Un QR de OF o pallet no se selecciona aquí.
