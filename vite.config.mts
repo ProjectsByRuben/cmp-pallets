@@ -16,7 +16,7 @@ export default defineConfig({
   build: { outDir: 'build', emptyOutDir: true },
   server: {
     proxy: {
-      '^/api/cmp_pallets/(lookup|associate|move|create|label)$': {
+      '^/api/cmp_pallets/(lookup|associate|move|create|label|locations)$': {
         target: process.env.CMP_ODOO_TARGET || 'http://127.0.0.1:16069',
         changeOrigin: false,
         rewrite: path => path.replace(/^\/api/, ''),

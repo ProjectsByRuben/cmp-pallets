@@ -12,6 +12,7 @@ const production: ScanRecord = { ...of, items: [pallet] };
 function mockApi() {
   return {
     bootstrap: vi.fn(), login: vi.fn(), unlock: vi.fn(), setupPin: vi.fn(), profile: vi.fn(), lock: vi.fn(), logout: vi.fn(),
+    locations: vi.fn<AccessApi['locations']>().mockResolvedValue({ ok: true, items: [], next_offset: null }),
     createPallet: vi.fn<AccessApi['createPallet']>().mockResolvedValue({ ok: true, pallet_id: 2, pallet_code: 'P26-00001' }),
     label: vi.fn<AccessApi['label']>().mockResolvedValue({ ok: true, pallet_id: 2, code: 'P26-00001', qr_payload: 'CMP:PALLET:P26-00001', png_base64: 'iVBORw0KGgo=' }),
     move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
@@ -256,9 +257,9 @@ describe('explicit OF association', () => {
     api.lookup.mockImplementation(async (_token, code) => ({ ok: true, record: code === production.code ? production : code === pallet.code ? { ...pallet, location: null } : { kind: 'location', id: location.id, code: location.code, title: location.name, active: true, items: [], next_offset: null } }));
     open(api);
     await scan(production.code); await scan(pallet.code);
-    expect(screen.getByRole('button', { name: 'Confirmar asociación' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Confirmar ubicación y asociación de OFs' })).toBeDisabled();
     await scan('CMP:LOC:' + location.code);
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar asociación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar ubicación y asociación de OFs' }));
     await screen.findByText(/Asociación confirmada en/);
     expect(api.associate).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));
   });
@@ -550,10 +551,105 @@ describe('pallet creation and printing entry points', () => {
     await user.type(screen.getByLabelText('Código de OF, pallet o ubicación'), location.code + '{Enter}');
     await screen.findByRole('heading', { name: location.code });
     await user.click(screen.getByRole('button', { name: /Crear pallet/ }));
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByText('Ubicación elegida:')).toHaveTextContent('Ubicación elegida:');
+    expect(screen.getByRole('dialog')).toHaveTextContent(location.code);
     await user.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
     await screen.findByRole('dialog', { name: /Etiqueta/ });
     expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));
     expect(api.associate).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('mandatory placement for unlocated pallets', () => {
+  const empty: ScanRecord = { ...pallet, location: null, items: [] };
+  const another: ScanRecord = { ...pallet, id: 40, code: 'P26-00040' };
+  const secondOrder: ScanRecord = { ...production, id: 50, code: 'OF99-00050' };
+  const dest: ScanRecord = { kind: 'location', id: location.id, code: location.code, title: location.name, active: true, items: [], next_offset: null };
+  function fixture() {
+    const api = mockApi();
+    api.locations.mockResolvedValue({ ok: true, items: [location], next_offset: null });
+    api.lookup.mockImplementation(async (_token, code) => {
+      const record = [empty, another, production, secondOrder, dest].find(p => p.code === code || code.endsWith(':' + p.code));
+      return record ? { ok: true, record } : { ok: false, error: 'Código desconocido' };
+    });
+    return api;
+  }
+  async function read(code: string) {
+    const field = screen.getByLabelText('Código de OF, pallet o ubicación');
+    fireEvent.change(field, { target: { value: code } });
+    fireEvent.submit(field.closest('form')!);
+    await waitFor(() => expect(field).not.toBeDisabled());
+  }
+  it('blocks other scans and places only the unlocated pallet, preserving the selected group until confirmation', async () => {
+    const api = fixture(); open(api);
+    await read(another.code); await read(empty.code);
+    expect(screen.getByRole('region', { name: 'Ubicación obligatoria' })).toHaveTextContent(empty.code);
+    await read(production.code);
+    expect(screen.getByRole('alert')).toHaveTextContent('necesita ubicación');
+    expect(screen.queryByText(/OFs seleccionadas/)).not.toBeInTheDocument();
+    await read('CMP:LOC:' + location.code);
+    expect(api.move).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar ubicación' }));
+    await screen.findByText(/Traslado confirmado/);
+    expect(api.move).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id, pallets: [{ id: empty.id, revision: empty.revision }] }));
+    expect(api.associate).not.toHaveBeenCalled();
+  });
+  it('confirms several previously scanned OFs and the new location in a single association', async () => {
+    const api = fixture(); open(api);
+    await read(production.code); await read(secondOrder.code); await read(empty.code);
+    const confirm = screen.getByRole('button', { name: 'Confirmar ubicación y asociación de OFs' });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await screen.findByText(/Asociación confirmada/);
+    expect(api.associate).toHaveBeenCalledTimes(1);
+    expect(api.associate).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({
+      pallet_id: empty.id, location_id: location.id,
+      productions: [production, secondOrder].map(p => ({ id: p.id, revision: p.revision })),
+    }));
+    expect(api.move).not.toHaveBeenCalled();
+  });
+  it('freezes the location and group on lost response and retries the identical combined request', async () => {
+    const api = fixture(); api.associate.mockRejectedValueOnce(new ApiError('Lost response', 'network')); open(api);
+    await read(production.code); await read(empty.code); await read(dest.code);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar ubicación y asociación de OFs' }));
+    const retry = await screen.findByRole('button', { name: 'Reintentar confirmación' });
+    expect(screen.getByLabelText('Código de OF, pallet o ubicación')).toBeDisabled();
+    expect(screen.getByLabelText('Buscar o escanear ubicación existente')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Cancelar operación de ubicación' })).not.toBeInTheDocument();
+    fireEvent.click(retry);
+    await screen.findByText(/Asociación confirmada/);
+    expect(api.associate.mock.calls[0]).toEqual(api.associate.mock.calls[1]);
+  });
+  it('can cancel placement without writing, then scan normally again', async () => {
+    const api = fixture(); open(api);
+    await read(empty.code);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar operación de ubicación' }));
+    expect(screen.queryByRole('region', { name: 'Ubicación obligatoria' })).not.toBeInTheDocument();
+    await read(production.code);
+    expect(await screen.findByRole('heading', { name: production.code })).toBeVisible();
+    expect(api.move).not.toHaveBeenCalled(); expect(api.associate).not.toHaveBeenCalled();
+  });
+  it('allows creating without location and printing first, but requires location when that pallet is scanned', async () => {
+    const api = fixture(); open(api);
+    fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
+    await screen.findByRole('dialog', { name: /Etiqueta/ });
+    expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.not.objectContaining({ location_id: expect.anything() }));
+    expect(screen.queryByRole('region', { name: 'Ubicación obligatoria' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar etiqueta' }));
+    await waitFor(() => expect(screen.getByLabelText('Código de OF, pallet o ubicación')).not.toBeDisabled());
+    await read(empty.code);
+    expect(screen.getByRole('region', { name: 'Ubicación obligatoria' })).toBeVisible();
+  });
+  it('creates with an existing location chosen from the catalog without scanning it beforehand', async () => {
+    const api = fixture(); open(api);
+    fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
+    await screen.findByRole('dialog', { name: /Etiqueta/ });
+    expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));
   });
 });

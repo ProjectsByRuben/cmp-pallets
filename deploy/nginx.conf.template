@@ -70,7 +70,7 @@ http {
             proxy_pass http://odoo/web/login?db=${CMP_ODOO_DB};
             proxy_redirect ~^https?://[^/]+/web/login.*$ /api/session/prepare;
         }
-        location ~ ^/api/(cmp_pallets/access/(bootstrap|unlock|setup_pin|profile|lock)|cmp_pallets/(lookup|associate|move|create|label)|web/session/(authenticate|destroy))$ {
+        location ~ ^/api/(cmp_pallets/access/(bootstrap|unlock|setup_pin|profile|lock)|cmp_pallets/(lookup|associate|move|create|label|locations)|web/session/(authenticate|destroy))$ {
             if ($secure_app_origin = 0) { return 403; }
             if ($valid_origin = 0) { return 403; }
             if ($request_method != POST) { return 405; }

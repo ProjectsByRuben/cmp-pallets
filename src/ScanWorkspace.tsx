@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createHidCollector } from '../dist/hid.mjs';
 import { ApiError, type Association, type Movement, type AccessApi, type Profile, type ScanRecord, type ScanSummary } from './api';
 import { CreatePalletDialog, PalletLabelDialog } from './PalletDialogs';
+import { LocationPicker } from './LocationPicker';
 import { Camera } from './Camera';
 import { modalKeys } from './modal';
 import { useReaderFocus } from './useReaderFocus';
@@ -20,6 +21,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   const [pallets, setPallets] = useState<ScanRecord[]>([]);
   const [targetId, setTargetId] = useState<number | null>(null);
   const [destination, setDestination] = useState<ScanRecord | null>(null);
+  const [needsLocation, setNeedsLocation] = useState<number | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const target = pallets.find(p => p.id === targetId) ?? (pallets.length === 1 ? pallets[0] : null);
   const moving = destination ? pallets.filter(p => p.location?.id !== destination.id) : [];
@@ -49,8 +51,8 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
 
   const { focus, readerState } = useReaderFocus(input, !busy && !pending && !camera && !manual && !creating && !labelPallet, collector);
 
-  async function read(code: string, mode: 'new' | 'back' | 'refresh' | 'more' | 'inspect' = 'new') {
-    if (inFlight.current || pending) return;
+  async function read(code: string, mode: 'new' | 'back' | 'refresh' | 'more' | 'inspect' = 'new', skipPlacement = false) {
+    if (inFlight.current || pending || (needsLocation && mode !== 'new')) return;
     code = code.trim();
     if (!code) return;
     if (mode === 'new' && lastRead.current.code === code && Date.now() - lastRead.current.at < 1000) return;
@@ -67,6 +69,11 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
       if (!result.ok) { setError(result.error); return; }
       setNotice('');
       const item = result.record;
+      if (skipPlacement) lastRead.current = { code: '', at: 0 };
+      if (needsLocation && item.kind !== 'location') {
+        setError('Este pallet necesita ubicación. Escanea una ubicación para continuar; esta lectura no se ha añadido.');
+        return;
+      }
       if (mode === 'new' || mode === 'refresh' || mode === 'inspect') {
         if (item.kind === 'production') {
           if (mode === 'new' && selected.length >= 100 && !selected.some(p => p.id === item.id)) { setError('Puedes seleccionar hasta 100 OFs a la vez.'); return; }
@@ -75,6 +82,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
           if (mode === 'new' && pallets.length >= 100 && !pallets.some(p => p.id === item.id)) { setError('Puedes seleccionar hasta 100 pallets a la vez.'); return; }
           setPallets(items => items.some(p => p.id === item.id) ? items.map(p => p.id === item.id ? item : p) : mode === 'new' && item.active !== false ? [...items, item] : items);
           if (item.active === false) setError('El pallet está archivado. Quítalo de la selección y lee otro destino.');
+          else if (mode === 'new' && !item.location && !skipPlacement) { setNeedsLocation(item.id); setTargetId(item.id); }
         } else if (mode === 'new' || destination?.id === item.id) {
           if (item.active === false) { setError('La ubicación está archivada. Lee otra ubicación.'); if (destination?.id === item.id) setDestination(null); }
           else setDestination(item);
@@ -113,7 +121,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     collector.clear();
     lastRead.current = { code: '', at: 0 };
     setRecord(null);
-    setSelected([]); setPallets([]); setTargetId(null); setDestination(null); setPending(null);
+    setSelected([]); setPallets([]); setTargetId(null); setDestination(null); setPending(null); setNeedsLocation(null);
     setNotice('');
     setPrevious([]);
     setError('');
@@ -152,11 +160,12 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
           ...(!target.location && destination ? { location_id: destination.id } : {}),
         } };
       } else {
-        if (!destination || !pallets.length || !moving.length) return;
-        if (pallets.some(p => !p.revision)) { setError('Actualiza las lecturas antes de confirmar.'); return; }
+        const movingPallets = needsLocation ? pallets.filter(p => p.id === needsLocation) : pallets;
+        if (!destination || !movingPallets.length || !moving.length) return;
+        if (movingPallets.some(p => !p.revision)) { setError('Actualiza las lecturas antes de confirmar.'); return; }
         proposal = { kind, data: {
           request_id: crypto.randomUUID(), location_id: destination.id,
-          pallets: pallets.map(p => ({ id: p.id, revision: p.revision! })),
+          pallets: movingPallets.map(p => ({ id: p.id, revision: p.revision! })),
         } };
       }
     }
@@ -170,13 +179,14 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
       setPending(null);
       if (!result.ok) {
         setError(result.error);
-        if (result.conflict) { setTargetId(null); setDestination(null); setSelected([]); setPallets([]); }
+        if (result.conflict) { setNeedsLocation(null); setTargetId(null); setDestination(null); setSelected([]); setPallets([]); }
         return;
       }
       home();
-      setNotice('pallet_code' in result
+      const placementNotice = needsLocation && destination ? ` Ubicación ${destination.code} confirmada.` : '';
+      setNotice(('pallet_code' in result
         ? `Asociación confirmada en ${result.pallet_code}: ${result.added} OFs añadidas.`
-        : `Traslado confirmado a ${result.location_code}: ${result.moved} pallets movidos; ${result.unchanged} ya estaban allí.`);
+        : `Traslado confirmado a ${result.location_code}: ${result.moved} pallets movidos; ${result.unchanged} ya estaban allí.`) + placementNotice);
     } catch (reason) {
       if (current !== version.current) return;
       if (reason instanceof ApiError && reason.kind !== 'network') {
@@ -204,38 +214,48 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   return <><main className="scan-workspace" inert={creating || !!labelPallet}>
     <div className="operator-bar"><div><strong>{profile.name}</strong><span>{profile.role === 'admin' ? 'Administrador' : 'Operario'}</span></div><button className="quiet-action" disabled={busy || switching || !!pending} onClick={onSwitch}>Cambiar operario</button></div>
     <nav className="scan-navigation" aria-label="Navegación de consultas">
-      <button className="quiet-action" disabled={busy || !!pending || !previous.length} onClick={() => void read(previous.at(-1)!, 'back')}>← Volver</button>
+      <button className="quiet-action" disabled={busy || !!pending || !!needsLocation || !previous.length} onClick={() => void read(previous.at(-1)!, 'back')}>← Volver</button>
       <button className="quiet-action" disabled={busy || !!pending} onClick={home}>⌂ Inicio</button>
     </nav>
-    <div className="workspace-heading"><h1>Escanear</h1><button className="secondary-action" disabled={busy || !!pending || pallets.length >= 100} onClick={() => { collector.clear(); setCreating(true); }}>＋ Crear pallet</button></div>
+    <div className="workspace-heading"><h1>Escanear</h1><button className="secondary-action" disabled={busy || !!pending || !!needsLocation || pallets.length >= 100} onClick={() => { collector.clear(); setCreating(true); }}>＋ Crear pallet</button></div>
     <section className="live-reader" aria-label="Lector QR">
       <p className="reader-indicator" role="status" aria-label="Estado del lector" data-ready={readerState === 'ready'}><span aria-hidden="true"/>{readerState === 'inactive' ? 'Activa esta página para leer' : busy ? 'Consultando Odoo…' : readerState === 'paused' ? 'Lector en pausa' : readerState === 'unfocused' ? 'Selecciona la casilla para leer' : 'Preparado para leer'}</p>
       <form onSubmit={event => { event.preventDefault(); void read(partial); }}>
         <label className="sr-only" htmlFor="live-code">Código de OF, pallet o ubicación</label>
         <div className="live-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 7h3v3H7zm7 0h3v3h-3zm-7 7h3v3H7zm7 0h3v3h-3z"/></svg>
-          <input ref={input} id="live-code" inputMode="none" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="OF, pallet o ubicación" value={partial} disabled={busy || !!pending} onChange={event => collector.setValue(event.target.value)} onKeyDown={event => collector.key(event.nativeEvent)}/>
+          <input ref={input} id="live-code" inputMode="none" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={needsLocation ? 'Escanea una ubicación' : 'OF, pallet o ubicación'} value={partial} disabled={busy || !!pending} onChange={event => collector.setValue(event.target.value)} onKeyDown={event => collector.key(event.nativeEvent)}/>
           <button className="icon-action" aria-label="Consultar código" disabled={busy || !partial}>→</button>
         </div>
       </form>
       <div className="reader-actions"><button className="quiet-action" disabled={busy || !!pending} onClick={() => { collector.clear(); setCamera(true); }}>▣ Cámara</button><button className="quiet-action" disabled={busy || !!pending} onClick={() => { collector.clear(); setManual(true); }}>⌨ Escribir</button></div>
     </section>
+    {needsLocation && <section className="record-card required-location" aria-label="Ubicación obligatoria">
+      <h2>Asigna ubicación a {target?.code}</h2>
+      <p>Este pallet aún no tiene ubicación. Escanea o elige una ubicación antes de seguir con otras lecturas.</p>
+      {!!selected.length && <p>Se asociarán {selected.length} OFs al pallet junto con la ubicación, en una única confirmación: <strong>{selected.map(p => p.code).join(', ')}</strong>.</p>}
+      <LocationPicker api={api} token={token} value={destination ? { id: destination.id, code: destination.code, name: destination.title } : null} disabled={busy || !!pending} onAccessError={onAccessError} onChange={location => {
+        setDestination(location ? { kind: 'location', ...location, title: location.name, active: true, items: [], next_offset: null } : null);
+      }}/>
+      <button className="primary-action" disabled={busy || !destination} onClick={() => void confirm(selected.length ? 'associate' : 'move')}>{busy ? 'Guardando en Odoo…' : pending ? 'Reintentar confirmación' : selected.length ? 'Confirmar ubicación y asociación de OFs' : 'Confirmar ubicación'}</button>
+      {!pending && <button className="quiet-action" disabled={busy} onClick={home}>Cancelar operación de ubicación</button>}
+    </section>}
     {notice && <p className="association-success" role="status">{notice}</p>}
     {!!pallets.length && <section className="record-card" aria-label="Pallets seleccionados">
       <h2>Pallets seleccionados · {pallets.length}</h2>
       <ul className="association-selection">{pallets.map(item => <li key={item.id}>
-        <button className="selected-record" disabled={busy || !!pending} aria-label={`Ver ${item.code}`} aria-pressed={record?.kind === item.kind && record.id === item.id} onClick={() => void read(codeFor(item), 'inspect')}><span><strong>{item.code}</strong><small>{item.active === false ? 'Archivado' : item.location ? `${item.location.code} · ${item.location.name}` : 'Sin ubicación'}</small></span><span className="selected-record-hint">{record?.kind === item.kind && record.id === item.id ? 'Viendo' : 'Ver →'}</span></button>
-        <button className="quiet-action" disabled={busy || !!pending} aria-label={`Quitar ${item.code}`} onClick={() => removePallet(item.id)}>Quitar</button>
+        <button className="selected-record" disabled={busy || !!pending || !!needsLocation} aria-label={`Ver ${item.code}`} aria-pressed={record?.kind === item.kind && record.id === item.id} onClick={() => void read(codeFor(item), 'inspect')}><span><strong>{item.code}</strong><small>{item.active === false ? 'Archivado' : item.location ? `${item.location.code} · ${item.location.name}` : 'Sin ubicación'}</small></span><span className="selected-record-hint">{record?.kind === item.kind && record.id === item.id ? 'Viendo' : 'Ver →'}</span></button>
+        <button className="quiet-action" disabled={busy || !!pending || !!needsLocation} aria-label={`Quitar ${item.code}`} onClick={() => removePallet(item.id)}>Quitar</button>
       </li>)}</ul>
       {!destination && <p>Escanea una ubicación para mover estos pallets, o una OF para asociarla.</p>}
     </section>}
     {destination && <section className="record-card" aria-label="Ubicación seleccionada">
-      <div className="record-heading"><div><p className="eyebrow">Ubicación seleccionada</p><button className="selected-record" disabled={busy || !!pending} aria-label={`Ver ${destination.code}`} aria-pressed={record?.kind === 'location' && record.id === destination.id} onClick={() => void read(codeFor(destination), 'inspect')}><strong>{destination.code} · {destination.title}</strong><span className="selected-record-hint">{record?.kind === 'location' && record.id === destination.id ? 'Viendo' : 'Ver →'}</span></button></div>
-        <button className="quiet-action" disabled={busy || !!pending} aria-label="Quitar ubicación" onClick={removeLocation}>Quitar</button></div>
+      <div className="record-heading"><div><p className="eyebrow">Ubicación seleccionada</p><button className="selected-record" disabled={busy || !!pending || !!needsLocation} aria-label={`Ver ${destination.code}`} aria-pressed={record?.kind === 'location' && record.id === destination.id} onClick={() => void read(codeFor(destination), 'inspect')}><strong>{destination.code} · {destination.title}</strong><span className="selected-record-hint">{record?.kind === 'location' && record.id === destination.id ? 'Viendo' : 'Ver →'}</span></button></div>
+        <button className="quiet-action" disabled={busy || !!pending || !!needsLocation} aria-label="Quitar ubicación" onClick={removeLocation}>Quitar</button></div>
       {!pallets.length && <p>Escanea uno o varios pallets para preparar el traslado.</p>}
     </section>}
-    {!!selected.length && <section className="record-card" aria-label="Asociación pendiente">
+    {!!selected.length && !needsLocation && <section className="record-card" aria-label="Asociación pendiente">
       <h2>OFs seleccionadas · {selected.length}</h2>
-      <ul className="association-selection">{selected.map(item => <li key={item.id}><button className="selected-record" disabled={busy || !!pending} aria-label={`Ver ${item.code}`} aria-pressed={record?.kind === item.kind && record.id === item.id} onClick={() => void read(codeFor(item), 'inspect')}><strong>{item.code}</strong><span className="selected-record-hint">{record?.kind === item.kind && record.id === item.id ? 'Viendo' : 'Ver →'}</span></button><button className="quiet-action" disabled={busy || !!pending} aria-label={`Quitar ${item.code}`} onClick={() => removeOrder(item.id)}>Quitar</button></li>)}</ul>
+      <ul className="association-selection">{selected.map(item => <li key={item.id}><button className="selected-record" disabled={busy || !!pending || !!needsLocation} aria-label={`Ver ${item.code}`} aria-pressed={record?.kind === item.kind && record.id === item.id} onClick={() => void read(codeFor(item), 'inspect')}><strong>{item.code}</strong><span className="selected-record-hint">{record?.kind === item.kind && record.id === item.id ? 'Viendo' : 'Ver →'}</span></button><button className="quiet-action" disabled={busy || !!pending || !!needsLocation} aria-label={`Quitar ${item.code}`} onClick={() => removeOrder(item.id)}>Quitar</button></li>)}</ul>
       {pallets.length > 1 && <div className="association-target"><label htmlFor="target-pallet">Pallet de destino para las OFs</label>
         <select id="target-pallet" disabled={busy || !!pending} value={targetId ?? ''} onChange={event => { setTargetId(event.target.value ? Number(event.target.value) : null); setTimeout(focus, 0); }}>
           <option value="">Elige un único pallet</option>{pallets.map(p => <option key={p.id} value={p.id} disabled={p.active === false}>{p.code}</option>)}
@@ -248,7 +268,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
         <button className="primary-action" disabled={busy || target.active === false || (!target.location && !destination) || (!!pending && pending.kind !== 'associate')} onClick={() => void confirm('associate')}>{busy && pending?.kind === 'associate' ? 'Guardando en Odoo…' : pending?.kind === 'associate' ? 'Reintentar confirmación' : 'Confirmar asociación'}</button>
       </> : <p>{pallets.length ? 'Elige un único pallet para asociar las OFs.' : 'Escanea más OFs o el pallet de destino.'}</p>}
     </section>}
-    {!!pallets.length && destination && <section className="record-card" aria-label="Traslado pendiente">
+    {!!pallets.length && destination && !needsLocation && <section className="record-card" aria-label="Traslado pendiente">
       <h2>Cambiar ubicación de pallets</h2>
       <p>Destino: <strong>{destination.code} · {destination.title}</strong></p>
       <ul className="move-summary">{pallets.map(p => <li key={p.id}><strong>{p.code}</strong>: {p.location?.code || 'Sin ubicación'} → {destination.code}{p.location?.id === destination.id ? ' (ya está aquí)' : ''}</li>)}</ul>
@@ -259,7 +279,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     {hasSelection && !pending && <button className="quiet-action" disabled={busy} onClick={home}>Cancelar selección</button>}
     {error && <p className="access-error" role="alert">{error}</p>}
     {!record && !error && <div className="scan-empty"><p>Escanea una OF, un pallet o una ubicación.</p></div>}
-    {record && <section ref={detail} className="record-card" aria-label="Detalle de la lectura">
+    {record && !needsLocation && <section ref={detail} className="record-card" aria-label="Detalle de la lectura">
       <div className="record-heading"><div><p className="eyebrow">{labels[record.kind]}</p><h2>{record.code}</h2></div><button className="icon-action" disabled={busy || !!pending} onClick={() => void read(codeFor(record), 'refresh')} aria-label="Actualizar consulta">↻</button></div>
       <p className="record-title">{record.title}</p>
       {record.state_label && <span className="role-badge">{record.state_label}</span>}
@@ -278,7 +298,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   </main>
     {creating && <CreatePalletDialog api={api} token={token} destination={destination} onClose={() => setCreating(false)} onAccessError={onAccessError} onCreated={result => {
       setCreating(false); setTargetId(result.pallet_id); setLabelPallet({ id: result.pallet_id, code: result.pallet_code });
-      void read('CMP:PALLET:' + result.pallet_code);
+      void read('CMP:PALLET:' + result.pallet_code, 'new', true);
     }}/>}
     {labelPallet && <PalletLabelDialog api={api} token={token} pallet={labelPallet} onClose={() => setLabelPallet(null)} onAccessError={onAccessError}/>}
   </>;

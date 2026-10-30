@@ -353,3 +353,24 @@ cualquiera de ellos. La ubicación seleccionada ofrece el mismo acceso. «Viendo
 marca el registro cuyo detalle se muestra debajo, al que se desplaza la página.
 Consultar conserva el grupo seleccionado y el pallet de destino para las OFs;
 «Quitar» sigue siendo una acción separada. Cada consulta vuelve a leer Odoo.
+
+
+## Ubicación al crear y al escanear un pallet vacío
+
+Al crear puedes buscar una ubicación existente por código/nombre, elegirla o escanear
+su QR en el selector. Se muestran únicamente ubicaciones activas accesibles de la
+compañía actual; la ubicación ya escaneada aparece preseleccionada. Si no eliges
+ninguna, el pallet vacío puede crearse y su etiqueta puede imprimirse igualmente.
+
+Al escanear un pallet sin ubicación, la app pide resolverla antes de continuar.
+Las lecturas de OFs u otros pallets no se añaden mientras está pendiente. Puedes
+escanear la ubicación con el lector/cámara o elegirla en el buscador. Si había OFs
+seleccionadas antes de escanear ese pallet, «Confirmar ubicación y asociación de OFs»
+guarda ambas cosas en una única operación. Sin OFs, «Confirmar ubicación» ubica sólo
+ese pallet, conservando los otros pallets sin mover. Elegir una ubicación no guarda
+hasta confirmar. Cancelar descarta la selección sin escribir en Odoo.
+
+Si se pierde la respuesta del guardado, se bloquean cambios y se reintenta la misma
+petición. Las revisiones y permisos se validan de nuevo en Odoo; un fallo no deja
+asociaciones a medio guardar. La creación no abre automáticamente esta petición de
+ubicación: permite imprimir primero la etiqueta y resolverla cuando se escanee el pallet.

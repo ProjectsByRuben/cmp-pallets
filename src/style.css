@@ -143,3 +143,11 @@ input[type=password] { letter-spacing: .15em; }
 .selected-record-hint { flex-shrink:0; font-size:12px; color:var(--cmp-text-muted); }
 .association-selection > li > .quiet-action { flex-shrink:0; }
 .record-card[aria-label="Detalle de la lectura"] { scroll-margin-top:16px; }
+
+
+.location-picker { display:grid; gap:8px; margin:16px 0; }
+.location-picker form { display:flex; gap:8px; flex-wrap:wrap; }
+.location-picker input { flex:1; min-width:160px; min-height:44px; padding:10px; border:1px solid var(--cmp-border); border-radius:8px; }
+.location-options { list-style:none; margin:0; padding:0; max-height:220px; overflow-y:auto; }
+.location-options .selected-record { width:100%; }
+.required-location { border:2px solid #fb923c; }

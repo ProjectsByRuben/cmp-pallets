@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, type AccessApi, type PalletCreated, type PalletCreation, type PalletLabel, type ScanRecord } from './api';
+import { LocationPicker } from './LocationPicker';
 import { modalKeys } from './modal';
 
 type Common = { api: AccessApi; token: string; onClose(): void; onAccessError(error: ApiError): void };
@@ -7,7 +8,7 @@ type Common = { api: AccessApi; token: string; onClose(): void; onAccessError(er
 export function CreatePalletDialog({ api, token, destination, onClose, onCreated, onAccessError }: Common & {
   destination: ScanRecord | null; onCreated(result: PalletCreated): void;
 }) {
-  const [useLocation, setUseLocation] = useState(!!destination && destination.active !== false);
+  const [location, setLocation] = useState(destination && destination.active !== false ? { id: destination.id, code: destination.code, name: destination.title } : null);
   const [proposal, setProposal] = useState<PalletCreation | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +18,7 @@ export function CreatePalletDialog({ api, token, destination, onClose, onCreated
 
   async function create() {
     if (running.current) return;
-    const request = proposal ?? { request_id: crypto.randomUUID(), ...(useLocation && destination ? { location_id: destination.id } : {}) };
+    const request = proposal ?? { request_id: crypto.randomUUID(), ...(location ? { location_id: location.id } : {}) };
     running.current = true; setProposal(request); setBusy(true); setError('');
     try {
       const result = await api.createPallet(token, request);
@@ -34,8 +35,8 @@ export function CreatePalletDialog({ api, token, destination, onClose, onCreated
   return <div className="modal-backdrop"><section className="scan-modal" role="dialog" aria-modal="true" aria-labelledby="create-pallet-title" onKeyDown={event => modalKeys(event, close)}>
     <div className="modal-heading"><h2 id="create-pallet-title">Crear pallet</h2><button className="icon-action" aria-label="Cerrar creación" disabled={locked} onClick={close}>×</button></div>
     <p>Odoo asignará el siguiente código. El pallet se creará vacío y después podrás imprimir su etiqueta.</p>
-    {destination && destination.active !== false ? <label className="creation-location"><input type="checkbox" checked={useLocation} disabled={locked} onChange={event => setUseLocation(event.target.checked)}/> Usar ubicación {destination.code} · {destination.title}</label>
-      : <p>Se creará sin ubicación. Puedes asignarla después escaneando una ubicación.</p>}
+    <LocationPicker api={api} token={token} value={location} onChange={setLocation} disabled={locked} onAccessError={onAccessError}/>
+    {!location && <p>Se creará sin ubicación. Al escanearlo para trabajar, deberás elegir una ubicación antes de continuar.</p>}
     <p>Las OFs seleccionadas se conservarán para asociarlas después de crear el pallet.</p>
     {error && <p className="access-error" role="alert">{error}</p>}
     <button className="primary-action" autoFocus disabled={busy} onClick={() => void create()}>{busy ? 'Creando en Odoo…' : proposal ? 'Reintentar creación' : 'Crear pallet y ver etiqueta'}</button>

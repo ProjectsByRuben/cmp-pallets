@@ -164,3 +164,28 @@ cubren los tres tipos como último elemento y permiten volver a escanear de inme
 
 Validado: 67 pruebas React y 33 de la demo, build y smoke test correctos. Activado
 en HTTPS con bundle `/assets/index-_F_wTgHc.js`, idéntico al build.
+
+
+## Ubicación existente al crear y resolución obligatoria al escanear — 30/10/2026
+
+Addon 16.0.1.10.0 (8b79716). El selector permite buscar por código/nombre, paginar y
+escanear una ubicación existente al crear; la ubicación ya seleccionada se propone.
+Crear vacío sin ubicación sigue permitido, con impresión de etiqueta primero.
+
+Al escanear después un pallet sin ubicar se abre una petición obligatoria de ubicación.
+Otras lecturas no se añaden y no se puede cambiar la selección hasta confirmar o
+cancelar. Las OFs ya seleccionadas y la ubicación se guardan con una sola asociación
+atómica. Sin OFs, se asigna ubicación únicamente a ese pallet, sin mover el resto.
+El destino leído antes se propone, pero siempre exige confirmación. Un resultado
+incierto congela ubicación y grupo para reintentar la misma identidad de petición.
+
+Validación: 111 pruebas Odoo y 74 React + 33 demo correctas, build correcto. Catálogo
+protegido por sesión, perfil, CSRF, compañía y reglas nativas; sólo lectura y 20
+resultados por página. Se conserva rollback/GC desactivada y numeración real intacta.
+Pruebas de selección bloqueada, OFs múltiples con ubicación, reintento idéntico,
+cancelación, ubicación al crear y creación sin ubicación seguida de escaneo obligatorio.
+
+Activado en cmpslu y https://pallets.cmp3.es, addon 16.0.1.10.0 instalado,
+contenedor saludable y smoke test correcto, incluida locations con sesión obligatoria.
+Bundle HTTPS `/assets/index-Dsv9_4-2.js` idéntico al build validado.
+Imagen activa: `sha256:4921d7ba4c89100bc0162d90e1b9624e940a175c584f9092f731cfd74948f41e`.

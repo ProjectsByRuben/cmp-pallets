@@ -17,6 +17,7 @@ function apiMock() {
     setupPin: vi.fn().mockResolvedValue({ ok: true, token: 'synthetic-token', profile: identity }),
     profile: vi.fn().mockResolvedValue(identity), lock: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
+    locations: vi.fn<AccessApi['locations']>().mockResolvedValue({ ok: true, items: [], next_offset: null }),
     createPallet: vi.fn<AccessApi['createPallet']>().mockResolvedValue({ ok: true, pallet_id: 2, pallet_code: 'P26-00001' }),
     label: vi.fn<AccessApi['label']>().mockResolvedValue({ ok: true, pallet_id: 2, code: 'P26-00001', qr_payload: 'CMP:PALLET:P26-00001', png_base64: 'iVBORw0KGgo=' }),
     move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),

@@ -43,7 +43,10 @@ export class ApiError extends Error {
   }
 }
 
+export type LocationPage = { ok: true; items: LocationSummary[]; next_offset: number | null };
+
 export interface AccessApi {
+  locations(token: string, query?: string, offset?: number): Promise<LocationPage>;
   createPallet(token: string, proposal: PalletCreation): Promise<PalletCreated>;
   label(token: string, palletId: number): Promise<PalletLabel>;
   associate(token: string, proposal: Association): Promise<AssociationResult>;
@@ -193,6 +196,14 @@ export class OdooAccessApi implements AccessApi {
       && Number.isInteger(result.unchanged) && result.unchanged >= 0) return result;
     if (result?.ok === false && typeof result.error === 'string') return result;
     throw new ApiError('No se ha confirmado el traslado. Reintenta la misma petición.', 'network');
+  }
+
+  async locations(token: string, query = '', offset = 0): Promise<LocationPage> {
+    const result = await this.rpc<LocationPage>('cmp_pallets/locations', { token, query, offset, csrf_token: this.csrf });
+    if (result?.ok === true && Array.isArray(result.items) && result.items.length <= 20
+      && result.items.every(item => Number.isInteger(item.id) && item.id > 0 && typeof item.code === 'string' && typeof item.name === 'string')
+      && (result.next_offset === null || Number.isInteger(result.next_offset))) return result;
+    throw new ApiError('No se han podido consultar las ubicaciones.', 'network');
   }
 
   async createPallet(token: string, proposal: PalletCreation): Promise<PalletCreated> {

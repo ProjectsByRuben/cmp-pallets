@@ -65,3 +65,12 @@ pallet and use the authenticated label endpoint. QR payload is CMP:PALLET:<code>
 Printing currently targets A4 with a 100 × 60 mm cut-out label, at Rubén's request;
 use browser printing/PDF and QR PNG download. No direct printer integration or claim
 of physical print success. Do not expose generic Odoo report/RPC routes to get images.
+
+
+Unlocated-pallet workflow: creation includes the protected active-location picker
+but can remain empty/unlocated. A subsequent new pallet scan requires location
+resolution before any other selections. Never add scanned OFs/pallets while waiting.
+Already selected OFs plus location use one existing associate request atomically;
+without OFs use one move request for that pallet only. Do not move unrelated selected
+pallets. Preserve unknown-outcome retry freezing and allow cancellation before saving.
+Location catalog is read-only, paginated and restricted to the current company.

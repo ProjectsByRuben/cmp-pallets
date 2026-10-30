@@ -113,3 +113,13 @@ it('treats an invalid creation response as unknown outcome, keeping its request 
   await expect(new OdooAccessApi(fetcher).createPallet('synthetic-token', { request_id: 'synthetic-create' })).rejects.toMatchObject({ kind: 'network' });
   expect(fetcher).toHaveBeenCalledOnce();
 });
+
+it('requests the protected location catalog with CSRF and pagination', async () => {
+  const page = { ok: true, items: [{ id: 3, code: 'TEST-CORTE', name: 'Corte' }], next_offset: 20 };
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap)).mockResolvedValueOnce(ok(page)).mockResolvedValueOnce(ok({ ok: true, items: null }));
+  const api = new OdooAccessApi(fetcher); await api.bootstrap();
+  await expect(api.locations('synthetic-token', 'CORTE', 0)).resolves.toEqual(page);
+  expect(fetcher.mock.calls[2][0]).toBe('/api/cmp_pallets/locations');
+  expect(JSON.parse(fetcher.mock.calls[2][1].body).params).toEqual({ token: 'synthetic-token', query: 'CORTE', offset: 0, csrf_token: 'synthetic-csrf' });
+  await expect(api.locations('synthetic-token')).rejects.toMatchObject({ kind: 'network' });
+});
