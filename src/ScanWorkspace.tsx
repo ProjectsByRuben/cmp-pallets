@@ -234,10 +234,10 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   return <><main className="scan-workspace" inert={creating || !!labelPallet}>
     <div className="operator-bar"><div><strong>{profile.name}</strong><span>{profile.role === 'admin' ? 'Administrador' : 'Operario'}</span></div><button className="quiet-action" disabled={busy || switching || !!pending} onClick={onSwitch}>Cambiar operario</button></div>
     <nav className="scan-navigation" aria-label="Navegación de consultas">
-      <button className="quiet-action" disabled={busy || !!pending || !!needsLocation || !previous.length} onClick={() => void read(previous.at(-1)!, 'back')}>← Volver</button>
-      <button className="quiet-action" disabled={busy || !!pending} onClick={home}>⌂ Inicio</button>
+      <button className="quiet-action" disabled={busy || !!pending || !!needsLocation || !previous.length} onClick={() => void read(previous.at(-1)!, 'back')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>Volver</button>
+      <button className="quiet-action" disabled={busy || !!pending} onClick={home}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m3 11 9-8 9 8M5 9v12h5v-7h4v7h5V9"/></svg>Inicio</button>
     </nav>
-    <div className="workspace-heading"><h1>Escanear</h1><button className="secondary-action" disabled={busy || !!pending || !!needsLocation || pallets.length >= 100} onClick={() => { collector.clear(); setCreating(true); }}>＋ Crear pallet</button></div>
+    <div className="workspace-heading"><div className="workspace-title"><p className="eyebrow">Área de operaciones</p><h1>Escanear</h1></div><button className="secondary-action" disabled={busy || !!pending || !!needsLocation || pallets.length >= 100} onClick={() => { collector.clear(); setCreating(true); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Crear pallet</button></div>
     <section className="live-reader" aria-label="Lector QR">
       <p className="reader-indicator" role="status" aria-label="Estado del lector" data-ready={readerState === 'ready'}><span aria-hidden="true"/>{readerState === 'inactive' ? 'Activa esta página para leer' : busy ? 'Consultando Odoo…' : readerState === 'paused' ? 'Lector en pausa' : readerState === 'unfocused' ? 'Selecciona la casilla para leer' : 'Preparado para leer'}</p>
       <form onSubmit={event => { event.preventDefault(); void read(partial); }}>
@@ -247,7 +247,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
           <button className="icon-action" aria-label="Consultar código" disabled={busy || !partial}>→</button>
         </div>
       </form>
-      <div className="reader-actions"><button className="quiet-action" disabled={busy || !!pending} onClick={() => { collector.clear(); setCamera(true); }}>▣ Cámara</button><button className="quiet-action" disabled={busy || !!pending} onClick={() => { collector.clear(); setManual(true); }}>⌨ Escribir</button></div>
+      <div className="reader-actions"><button className="quiet-action" disabled={busy || !!pending} onClick={() => { collector.clear(); setCamera(true); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M8 5 6 8H3v12h18V8h-3l-2-3Z"/><circle cx="12" cy="13" r="4"/></svg>Cámara</button><button className="quiet-action" disabled={busy || !!pending} onClick={() => { collector.clear(); setManual(true); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h1m3 0h1m3 0h1m3 0h1M6 12h1m3 0h1m3 0h1m3 0h1M7 15h10"/></svg>Escribir</button></div>
     </section>
     {needsLocation && <section className="record-card required-location" aria-label="Ubicación obligatoria">
       <h2>Asigna ubicación a {target?.code}</h2>
@@ -298,7 +298,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     </section>}
     {hasSelection && !pending && <button className="quiet-action" disabled={busy} onClick={home}>Cancelar selección</button>}
     {error && <p className="access-error" role="alert">{error}</p>}
-    {!record && !error && <div className="scan-empty"><p>Escanea una OF, un pallet o una ubicación.</p></div>}
+    {!record && !error && <div className="scan-empty"><div className="empty-symbol"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M7 31h34v6H7zM11 37v5m13-5v5m13-5v5M10 14l14-7 14 7v16H10zM10 14l14 7 14-7M24 21v9M17 10.5l14 7"/></svg></div><h2>Todo listo para empezar</h2><p>Escanea una OF, un pallet o una ubicación.</p></div>}
     {record && !needsLocation && <section ref={detail} className="record-card" aria-label="Detalle de la lectura">
       <div className="record-heading"><div><p className="eyebrow">{labels[record.kind]}</p><h2>{record.code}</h2></div><button className="icon-action" disabled={busy || !!pending} onClick={() => void read(codeFor(record), 'refresh')} aria-label="Actualizar consulta">↻</button></div>
       <p className="record-title">{record.title}</p>

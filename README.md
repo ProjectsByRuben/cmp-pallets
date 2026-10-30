@@ -407,3 +407,12 @@ identificarse otra vez. La recuperación no añade permisos ni extiende la vigen
 perfil. No garantiza recuperar después de cerrar pestaña/borrar datos del navegador;
 si éste bloquea sessionStorage se mantiene el acceso normal, pero sin recuperación.
 No es un modo de trabajo sin conexión ni una cola de sincronización automática.
+
+
+## Presentación de la aplicación
+
+Cabecera centrada con el logotipo original CMP, título Pallets y contexto de
+fabricación. Área de trabajo de ancho contenido, lector destacado, tarjetas de
+selección/detalle y acciones con jerarquía visual consistente. Rojo corporativo,
+grafito, superficies claras, iconos SVG locales y foco visible; disposición adaptada
+a móvil y escritorio. Los estilos de impresión de la etiqueta se mantienen separados.

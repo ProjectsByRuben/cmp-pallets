@@ -306,3 +306,23 @@ sessionStorage; cerrar/borrar la pestaña no tiene garantía de recuperación.
 Activado en HTTPS con bundle `/assets/index-CJnwh5NS.js` idéntico al build validado,
 contenedor saludable y smoke test correcto. Imagen: `sha256:1fda3b380f6d3d047a272b7b9119ccb23442d494f885d34f1f52ce606c03db79`.
 No hay cambios de código/esquema Odoo ni reinicio de su servicio.
+
+
+## Presentación centrada y acabado de aplicación — 30/10/2026
+
+Cabecera con logo CMP y Pallets centrados, subtítulo de fabricación y línea roja
+corporativa. Ancho máximo del trabajo 860 px, fondo claro, tarjetas redondeadas,
+lector destacado y tipografía/espaciado más consistentes. El acceso y la pantalla
+PIN usan símbolos y títulos centrados; los formularios conservan etiquetas legibles.
+Iconos SVG para navegación, alta, cámara y escritura, sin dependencias externas.
+Selección activa en rojo CMP, botones táctiles amplios y movimiento reducido respetado.
+No se modifican los activos originales ni las operaciones o la restauración de estado.
+
+Validación: 100 pruebas React y 33 de demo correctas; build correcto. Comprobación
+visual con componentes reales renderizados en Chromium y datos sintéticos, a 320,
+390, 768 y 1440 px: marca y contenido centrados, sin desbordamiento horizontal.
+El PDF de impresión conserva una página A4 con sólo la etiqueta. No se usaron cuentas
+reales ni se modificaron datos para revisar el diseño.
+
+Publicado en HTTPS: `/assets/index-CIaSWW-x.js` y `/assets/index-BufIAPeB.css` coinciden con el build; servicio
+saludable y smoke test correcto. La imagen anterior se conserva para rollback.

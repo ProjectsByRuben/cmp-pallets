@@ -7,8 +7,8 @@ import { RecoverWorkspace } from './RecoverWorkspace';
 type Page = 'loading' | 'login' | 'choose' | 'pin' | 'ready' | 'blocked' | 'offline';
 const defaultApi = new OdooAccessApi();
 
-function BrandHeader() {
-  return <header className="access-header"><div><img src={logo} alt="CMP"/><span>Pallets</span></div></header>;
+export function BrandHeader() {
+  return <header className="access-header"><div className="brand-shell"><div className="brand-lockup"><img src={logo} alt="CMP"/><span>Pallets</span></div><p>Gestión de fabricación</p></div></header>;
 }
 
 function Icon({ kind }: { kind: 'lock' | 'user' | 'check' | 'arrow' }) {
