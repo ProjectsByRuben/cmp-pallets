@@ -1,31 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, type AccessApi, type PalletCreated, type PalletCreation, type PalletLabel, type ScanRecord } from './api';
 import { LocationPicker } from './LocationPicker';
+import type { CreationDraft } from './tabState';
 import { modalKeys } from './modal';
 
 type Common = { api: AccessApi; token: string; onClose(): void; onAccessError(error: ApiError): void };
 
-export function CreatePalletDialog({ api, token, destination, onClose, onCreated, onAccessError }: Common & {
-  destination: ScanRecord | null; onCreated(result: PalletCreated): void;
+export function CreatePalletDialog({ api, token, destination, onClose, onCreated, onAccessError, initialDraft, onDraftChange }: Common & {
+  destination: ScanRecord | null; onCreated(result: PalletCreated): void; initialDraft?: CreationDraft; onDraftChange?(draft: CreationDraft): void;
 }) {
-  const [location, setLocation] = useState(destination && destination.active !== false ? { id: destination.id, code: destination.code, name: destination.title } : null);
-  const [proposal, setProposal] = useState<PalletCreation | null>(null);
+  const [location, setLocation] = useState(initialDraft ? initialDraft.location : destination && destination.active !== false ? { id: destination.id, code: destination.code, name: destination.title } : null);
+  const [proposal, setProposal] = useState<PalletCreation | null>(initialDraft?.proposal ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const running = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const locked = busy || !!proposal;
   const close = () => { if (!locked) onClose(); };
 
   async function create() {
     if (running.current) return;
     const request = proposal ?? { request_id: crypto.randomUUID(), ...(location ? { location_id: location.id } : {}) };
+    onDraftChange?.({ location, proposal: request });
     running.current = true; setProposal(request); setBusy(true); setError('');
     try {
       const result = await api.createPallet(token, request);
-      onCreated(result);
+      if (mounted.current) onCreated(result);
     } catch (reason) {
+      if (!mounted.current) return;
       if (reason instanceof ApiError && reason.kind !== 'network') {
-        setProposal(null);
+        setProposal(null); onDraftChange?.({ location, proposal: null });
         if (reason.kind === 'business') setError(reason.message);
         else onAccessError(reason);
       } else setError('No se ha confirmado la creación. Reintenta la misma petición para evitar duplicados.');
@@ -35,7 +40,7 @@ export function CreatePalletDialog({ api, token, destination, onClose, onCreated
   return <div className="modal-backdrop"><section className="scan-modal" role="dialog" aria-modal="true" aria-labelledby="create-pallet-title" onKeyDown={event => modalKeys(event, close)}>
     <div className="modal-heading"><h2 id="create-pallet-title">Crear pallet</h2><button className="icon-action" aria-label="Cerrar creación" disabled={locked} onClick={close}>×</button></div>
     <p>Odoo asignará el siguiente código. El pallet se creará vacío y después podrás imprimir su etiqueta.</p>
-    <LocationPicker autoFocus api={api} token={token} value={location} onChange={setLocation} disabled={locked} onAccessError={onAccessError}/>
+    <LocationPicker autoFocus api={api} token={token} value={location} onChange={value => { setLocation(value); onDraftChange?.({ location: value, proposal }); }} disabled={locked} onAccessError={onAccessError}/>
     {!location && <p>Se creará sin ubicación. Al escanearlo para trabajar, deberás elegir una ubicación antes de continuar.</p>}
     <p>Las OFs seleccionadas se conservarán para asociarlas después de crear el pallet.</p>
     {error && <p className="access-error" role="alert">{error}</p>}

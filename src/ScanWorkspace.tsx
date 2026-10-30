@@ -1,41 +1,43 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createHidCollector } from '../dist/hid.mjs';
-import { ApiError, type Association, type Movement, type AccessApi, type Profile, type ScanRecord, type ScanSummary } from './api';
+import { ApiError, type AccessApi, type Profile, type ScanRecord, type ScanSummary } from './api';
 import { CreatePalletDialog, PalletLabelDialog } from './PalletDialogs';
 import { LocationPicker } from './LocationPicker';
 import { Camera } from './Camera';
+import { clearWork, saveWork, type SavedWork, type CreationDraft, type PendingOperation } from './tabState';
 import { modalKeys } from './modal';
 import { useReaderFocus } from './useReaderFocus';
 
-type Pending = { kind: 'associate'; data: Association } | { kind: 'move'; data: Movement };
+type Pending = PendingOperation;
 
 const prefixes = { production: 'OF', pallet: 'PALLET', location: 'LOC' };
 const labels = { production: 'Orden de fabricación', pallet: 'Pallet', location: 'Ubicación' };
 const codeFor = (item: ScanSummary) => `CMP:${prefixes[item.kind]}:${item.code}`;
 
-export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, onChangeAccount, switching }: {
+export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, onChangeAccount, switching, initialState }: {
   api: AccessApi; token: string; profile: Profile; onAccessError(error: ApiError): void;
-  onSwitch(): void; onChangeAccount(): void; switching: boolean;
+  onSwitch(): void; onChangeAccount(): void; switching: boolean; initialState?: SavedWork;
 }) {
-  const [selected, setSelected] = useState<ScanRecord[]>([]);
-  const [pallets, setPallets] = useState<ScanRecord[]>([]);
-  const [targetId, setTargetId] = useState<number | null>(null);
-  const [destination, setDestination] = useState<ScanRecord | null>(null);
-  const [needsLocation, setNeedsLocation] = useState<number | null>(null);
-  const [pending, setPending] = useState<Pending | null>(null);
+  const [selected, setSelected] = useState<ScanRecord[]>(initialState?.selected ?? []);
+  const [pallets, setPallets] = useState<ScanRecord[]>(initialState?.pallets ?? []);
+  const [targetId, setTargetId] = useState<number | null>(initialState?.targetId ?? null);
+  const [destination, setDestination] = useState<ScanRecord | null>(initialState?.destination ?? null);
+  const [needsLocation, setNeedsLocation] = useState<number | null>(initialState?.needsLocation ?? null);
+  const [pending, setPending] = useState<Pending | null>(initialState?.pending ?? null);
   const target = pallets.find(p => p.id === targetId) ?? (pallets.length === 1 ? pallets[0] : null);
   const moving = destination ? pallets.filter(p => p.location?.id !== destination.id) : [];
   const hasSelection = !!(selected.length || pallets.length || destination);
   const [notice, setNotice] = useState('');
   const [partial, setPartial] = useState('');
-  const [record, setRecord] = useState<ScanRecord | null>(null);
-  const [previous, setPrevious] = useState<string[]>([]);
+  const [record, setRecord] = useState<ScanRecord | null>(initialState?.record ?? null);
+  const [previous, setPrevious] = useState<string[]>(initialState?.previous ?? []);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [camera, setCamera] = useState(false);
   const [manual, setManual] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [labelPallet, setLabelPallet] = useState<{ id: number; code: string } | null>(null);
+  const [creating, setCreating] = useState(!!initialState?.creation);
+  const [creationDraft, setCreationDraft] = useState<CreationDraft | null>(initialState?.creation ?? null);
+  const [labelPallet, setLabelPallet] = useState<{ id: number; code: string } | null>(initialState?.labelPallet ?? null);
   const [manualCode, setManualCode] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const detail = useRef<HTMLElement>(null);
@@ -48,6 +50,22 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     onPartial: setPartial,
     isKnown: code => !inFlight.current && (/^OF\d{2}-\d+$/i.test(code) || /^P(?:\d{2}-\d{5,}|\d{9,})$/.test(code) || /^CMP:(OF|PALLET|LOC):[^\r\n]+$/.test(code)),
   }));
+
+  const snapshot = (): SavedWork => ({ selected, pallets, targetId, destination, needsLocation, pending, record, previous,
+    creation: creating ? creationDraft ?? { location: destination ? { id: destination.id, code: destination.code, name: destination.title } : null, proposal: null } : null,
+    labelPallet, scrollY: window.scrollY });
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
+  useEffect(() => { saveWork(token, snapshot()); }, [selected, pallets, targetId, destination, needsLocation, pending, record, previous, creating, creationDraft, labelPallet]);
+  useEffect(() => {
+    const save = () => saveWork(token, snapshotRef.current());
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const scroll = () => { clearTimeout(timer); timer = setTimeout(save, 200); };
+    window.addEventListener('pagehide', save);
+    window.addEventListener('scroll', scroll, { passive: true });
+    if (initialState?.scrollY && initialState.scrollY > 0) window.scrollTo(0, initialState.scrollY);
+    return () => { window.removeEventListener('pagehide', save); window.removeEventListener('scroll', scroll); clearTimeout(timer); };
+  }, []);
 
   const { focus, readerState } = useReaderFocus(input, !busy && !pending && !camera && !manual && !creating && !labelPallet, collector);
 
@@ -118,6 +136,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   }, [camera, manual, creating, labelPallet, busy]);
 
   function home() {
+    clearWork();
     collector.clear();
     lastRead.current = { code: '', at: 0 };
     setRecord(null);
@@ -169,6 +188,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
         } };
       }
     }
+    saveWork(token, { ...snapshot(), pending: proposal });
     setPending(proposal);
     inFlight.current = true; setBusy(true); setError(''); setNotice('');
     const current = ++version.current;
@@ -265,7 +285,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
         <p>Ubicación del pallet: <strong>{target.location ? `${target.location.code} · ${target.location.name}` : destination ? `${destination.code} · ${destination.title}` : 'Escanea una ubicación para continuar'}</strong></p>
         <p>Se conservarán las asociaciones con otros pallets.</p>
         {target.location && destination && target.location.id !== destination.id && <p>Esta asociación conserva la ubicación actual del pallet. Para cambiarla, confirma el traslado por separado.</p>}
-        <button className="primary-action" disabled={busy || target.active === false || (!target.location && !destination) || (!!pending && pending.kind !== 'associate')} onClick={() => void confirm('associate')}>{busy && pending?.kind === 'associate' ? 'Guardando en Odoo…' : pending?.kind === 'associate' ? 'Reintentar confirmación' : 'Confirmar asociación'}</button>
+        <button className="primary-action" disabled={busy || (!pending && (target.active === false || (!target.location && !destination))) || (!!pending && pending.kind !== 'associate')} onClick={() => void confirm('associate')}>{busy && pending?.kind === 'associate' ? 'Guardando en Odoo…' : pending?.kind === 'associate' ? 'Reintentar confirmación' : 'Confirmar asociación'}</button>
       </> : <p>{pallets.length ? 'Elige un único pallet para asociar las OFs.' : 'Escanea más OFs o el pallet de destino.'}</p>}
     </section>}
     {!!pallets.length && destination && !needsLocation && <section className="record-card" aria-label="Traslado pendiente">
@@ -274,7 +294,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
       <ul className="move-summary">{pallets.map(p => <li key={p.id}><strong>{p.code}</strong>: {p.location?.code || 'Sin ubicación'} → {destination.code}{p.location?.id === destination.id ? ' (ya está aquí)' : ''}</li>)}</ul>
       <p>{moving.length ? `Se moverán ${moving.length} pallets; ${pallets.length - moving.length} ya están en el destino.` : 'Todos los pallets seleccionados ya están en esta ubicación.'}</p>
       {!!selected.length && <p>Este traslado cambia la ubicación de los pallets con su contenido actual. Las OFs seleccionadas se asocian por separado.</p>}
-      <button className="primary-action" disabled={busy || !moving.length || pallets.some(p => p.active === false) || (!!pending && pending.kind !== 'move')} onClick={() => void confirm('move')}>{busy && pending?.kind === 'move' ? 'Guardando en Odoo…' : pending?.kind === 'move' ? 'Reintentar traslado' : 'Confirmar traslado'}</button>
+      <button className="primary-action" disabled={busy || (!pending && (!moving.length || pallets.some(p => p.active === false))) || (!!pending && pending.kind !== 'move')} onClick={() => void confirm('move')}>{busy && pending?.kind === 'move' ? 'Guardando en Odoo…' : pending?.kind === 'move' ? 'Reintentar traslado' : 'Confirmar traslado'}</button>
     </section>}
     {hasSelection && !pending && <button className="quiet-action" disabled={busy} onClick={home}>Cancelar selección</button>}
     {error && <p className="access-error" role="alert">{error}</p>}
@@ -296,8 +316,10 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     {manual && <div className="modal-backdrop"><section className="scan-modal" role="dialog" aria-modal="true" aria-labelledby="manual-title" onKeyDown={event => modalKeys(event, closeManual)}><div className="modal-heading"><h2 id="manual-title">Introducir código</h2><button className="icon-action" aria-label="Cerrar entrada manual" onClick={closeManual}>×</button></div><form onSubmit={submitManual}><label htmlFor="manual-code">OF, pallet o ubicación</label><input id="manual-code" autoFocus autoComplete="off" autoCapitalize="none" spellCheck={false} value={manualCode} onChange={event => setManualCode(event.target.value)} required maxLength={256}/><button className="primary-action" disabled={!manualCode.trim()}>Consultar</button></form></section></div>}
     {camera && <Camera onClose={() => setCamera(false)} onRead={code => { setCamera(false); void read(code); }}/>}
   </main>
-    {creating && <CreatePalletDialog api={api} token={token} destination={destination} onClose={() => setCreating(false)} onAccessError={onAccessError} onCreated={result => {
-      setCreating(false); setTargetId(result.pallet_id); setLabelPallet({ id: result.pallet_id, code: result.pallet_code });
+    {creating && <CreatePalletDialog api={api} token={token} destination={destination} initialDraft={creationDraft ?? undefined} onDraftChange={draft => {
+      setCreationDraft(draft); saveWork(token, { ...snapshot(), creation: draft });
+    }} onClose={() => { setCreating(false); setCreationDraft(null); }} onAccessError={onAccessError} onCreated={result => {
+      setCreating(false); setCreationDraft(null); setTargetId(result.pallet_id); setLabelPallet({ id: result.pallet_id, code: result.pallet_code });
       void read('CMP:PALLET:' + result.pallet_code, 'new', true);
     }}/>}
     {labelPallet && <PalletLabelDialog api={api} token={token} pallet={labelPallet} onClose={() => setLabelPallet(null)} onAccessError={onAccessError}/>}

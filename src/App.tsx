@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, OdooAccessApi, type AccessApi, type Bootstrap, type Employee, type Profile } from './api';
 import logo from '../dist/brand/cmp-logo-negativo.png';
-import { ScanWorkspace } from './ScanWorkspace';
+import { clearTab, readAccess, saveAccess } from './tabState';
+import { RecoverWorkspace } from './RecoverWorkspace';
 
 type Page = 'loading' | 'login' | 'choose' | 'pin' | 'ready' | 'blocked' | 'offline';
 const defaultApi = new OdooAccessApi();
@@ -33,8 +34,10 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  // Credentials and identity tokens live only in this mounted tab, never storage.
+  // PIN/password stay in memory. The verified token survives reload in this tab
+  // only, at the user’s request, and must be revalidated by Odoo before use.
   const token = useRef('');
+  const accountId = useRef(0);
   const running = useRef(false);
   const pinInput = useRef<HTMLInputElement>(null);
 
@@ -49,16 +52,40 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
 
   function accepted(result: { token: string; profile: Profile }) {
     token.current = result.token;
+    saveAccess({ page: 'ready', userId: accountId.current, employeeId: result.profile.employee_id, token: result.token });
     setProfile(result.profile);
     setPage('ready');
     setError('');
   }
 
-  async function bootstrap() {
+  async function bootstrap(restore = false) {
+    const saved = restore ? readAccess() : null;
     clearIdentity();
     setData(null);
     const initial = await api.bootstrap();
     setData(initial);
+    accountId.current = initial.user.id;
+    if (saved && saved.userId !== initial.user.id) clearTab();
+    if (saved?.userId === initial.user.id && saved.page === 'ready' && saved.token) {
+      try {
+        const verified = await api.profile(saved.token);
+        if (verified.employee_id !== saved.employeeId) throw new ApiError('Identifícate de nuevo.', 'access');
+        accepted({ token: saved.token, profile: verified });
+        return;
+      } catch (reason) {
+        if (reason instanceof ApiError && reason.kind === 'network') throw reason;
+        clearTab();
+        if (reason instanceof ApiError && reason.kind === 'session') throw reason;
+        setError(reason instanceof Error ? reason.message : 'Identifícate de nuevo.');
+      }
+    }
+    if (saved?.userId === initial.user.id && saved.page === 'pin' && initial.requires_pin) {
+      const chosen = initial.employees.find(item => item.id === saved.employeeId);
+      if (chosen) {
+        setEmployee(chosen); setSelectedId(String(chosen.id)); setSetup(chosen.pin_setup_required); setPage('pin');
+        return;
+      }
+    }
     if (initial.requires_pin) {
       if (!initial.employees.length) {
         setError('No hay empleados con acceso a CMP Pallets para esta cuenta. Consulta con tu responsable.');
@@ -79,6 +106,7 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
     setPin('');
     setConfirmation('');
     setError(problem.message);
+    if (problem.kind !== 'network') clearTab();
     if (problem.kind === 'session') {
       clearIdentity();
       setData(null);
@@ -102,16 +130,26 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
 
   useEffect(() => {
     void run(async () => {
-      try { await bootstrap(); }
+      const saved = readAccess();
+      if (saved?.page === 'login') { setPage('login'); return; }
+      try { await bootstrap(true); }
       catch (reason) {
         // An anonymous initial load (including reload after logout) is normal.
         // Expiry while using the app still goes through failed() with its notice.
         if (!(reason instanceof ApiError) || reason.kind !== 'session') throw reason;
-        setError('');
+        clearTab();
+        setError(saved?.page === 'ready' ? reason.message : '');
         setPage('login');
       }
     });
   }, [api]);
+
+  useEffect(() => {
+    if (page === 'login') saveAccess({ page: 'login' });
+    else if (data && page === 'pin' && employee) saveAccess({ page, userId: data.user.id, employeeId: employee.id });
+    else if (data && page === 'choose') saveAccess({ page, userId: data.user.id });
+    else if (data && page === 'ready' && profile && token.current) saveAccess({ page, userId: data.user.id, employeeId: profile.employee_id, token: token.current });
+  }, [page, data, employee, profile]);
 
   useEffect(() => {
     if (page === 'pin' && !busy) pinInput.current?.focus();
@@ -162,9 +200,10 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
     : page === 'pin' ? (setup ? 'Crea tu PIN de 4 a 8 números.' : 'Introduce tu PIN de empleado.')
     : page === 'login' ? 'Accede con la cuenta Odoo de este equipo.' : '';
 
-  if (page === 'ready' && profile) return <><BrandHeader/><ScanWorkspace
+  if (page === 'ready' && profile) return <><BrandHeader/><RecoverWorkspace
     api={api} token={token.current} profile={profile} onAccessError={failed} switching={busy}
     onChangeAccount={() => void run(async () => {
+      clearTab(); saveAccess({ page: 'login' });
       clearIdentity();
       setPage('loading');
       await api.logout();
@@ -173,6 +212,7 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
     })}
     onSwitch={() => void run(async () => {
       const previous = token.current;
+      clearTab();
       clearIdentity();
       setPage('loading');
       await api.lock(previous);
@@ -230,10 +270,11 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
 
         {(page === 'offline' || page === 'blocked') && <button className="primary-action" disabled={busy} onClick={() => void run(async () => {
           if (token.current) accepted({ token: token.current, profile: await api.profile(token.current) });
-          else await bootstrap();
+          else await bootstrap(true);
         })}>{busy ? 'Conectando…' : 'Reintentar'}<Icon kind="arrow"/></button>}
 
         {(data || page === 'blocked') && <div className="account-footer"><span>{data ? 'Cuenta: ' + data.user.name : 'Sesión Odoo activa'}</span><button disabled={busy} onClick={() => void run(async () => {
+          clearTab(); saveAccess({ page: 'login' });
           clearIdentity();
           setPage('loading');
           await api.logout();

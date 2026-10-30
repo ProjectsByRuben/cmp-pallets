@@ -32,8 +32,11 @@ React compila en `build/`, nunca sobre `dist/`. Servir la demo `dist` sin build.
 `npm run dev` abre React en 127.0.0.1:4184 con proxy local al Odoo de pruebas.
 No modificar PIN, roles o usuarios reales para probar: usar mocks en React y el
 runner de fixtures reversibles del addon para sus comprobaciones autenticadas.
-Mantener el token del operario sólo en memoria por pestaña; no guardarlo en
-localStorage/sessionStorage ni inferir que la cookie del dominio Odoo se comparte.
+Por petición expresa de Rubén del 30/10/2026, restaurar tras recarga mediante
+sessionStorage de esta pestaña: token verificado, pantalla y borrador. Esta instrucción
+sustituye la antigua regla de token sólo en memoria. Nunca guardar PIN/contraseña,
+CSRF ni usar localStorage/URLs. Validar cuenta y perfil en Odoo antes de restaurar,
+y registros antes de mostrarlos. No inferir cookies compartidas con el dominio Odoo.
 Conservar la identidad del proyecto Sites y la versión anterior documentada.
 Hacer commit/push y despliegue sólo con autorización en la conversación.
 GitHub y Sites son destinos distintos; un push no despliega.
@@ -74,3 +77,11 @@ Already selected OFs plus location use one existing associate request atomically
 without OFs use one move request for that pallet only. Do not move unrelated selected
 pallets. Preserve unknown-outcome retry freezing and allow cancellation before saving.
 Location catalog is read-only, paginated and restricted to the current company.
+
+
+Reload persistence: tabState stores only an explicit allowlist, never form secrets.
+RecoverWorkspace re-reads pending records with current ACLs before rendering them.
+Mutation IDs/payloads are saved synchronously before dispatch and restored as explicit
+retries, never auto-submitted; creation drafts follow the same rule. Logout, operator
+switch, invalid identity and account changes clear prior state. Reload never issues a
+new operator token to extend its lifetime. PIN screen restores employee but no digits.

@@ -130,9 +130,12 @@ existente nunca se reemplaza desde este formulario. Los errores se muestran sin
 reintentar automáticamente una verificación, para no incrementar intentos por un
 reintento invisible. Las contraseñas y los PIN se limpian tras el envío.
 
-El token de identidad permanece **sólo en memoria de la pestaña**. No se guarda en
-localStorage, sessionStorage ni en URL; recargar requiere volver a identificar al
-operario. Cada pestaña inicia su propio perfil, incluso al duplicarla. La sesión de
+Por petición de Rubén del 30/10/2026, el identificador del perfil y la pantalla se
+conservan en **sessionStorage de esta pestaña** para soportar recargas. PIN y contraseña
+no se guardan, y el token nunca se escribe en localStorage ni URL. Antes de restaurar
+un perfil se valida de nuevo en Odoo, sin emitir otro token ni ampliar sus ocho horas.
+El navegador puede copiar sessionStorage al duplicar una pestaña; para otro operario
+se usa «Cambiar operario», que exige su identificación. La sesión de
 cuenta Odoo utiliza su cookie nativa HttpOnly. Cambiar operario revoca sólo ese perfil;
 Cambiar cuenta cierra la sesión de cuenta del origen de esta aplicación, afectando a
 sus otras pestañas. La identidad se vuelve a validar al enfocar la pestaña y cada minuto;
@@ -283,9 +286,11 @@ antes de «Confirmar asociación». Sólo el POST de confirmación escribe en Od
 Se conservan otros pallets y la ubicación existente. El éxito vuelve al inicio.
 Un conflicto exige nuevas lecturas; una respuesta perdida conserva y bloquea la
 propuesta para «Reintentar confirmación» con la misma identidad de petición.
-El token y la propuesta viven en memoria por pestaña. Si se cierra o recarga la
-pestaña antes de recibir respuesta, consultar el historial de Odoo para comprobar el
-resultado antes de preparar otra operación.
+El token y la propuesta se conservan en sessionStorage por petición expresa de Rubén.
+Al recargar con resultado incierto se restaura la misma petición para reintentar
+explícitamente, sin generar otro UUID ni enviar escrituras automáticamente. Si se
+cierra sesión, se cambia de operario o se pierde la identidad válida, consultar el
+historial de Odoo antes de repetir una operación cuyo resultado no se conoce.
 
 Activado con autorización el 29/10/2026: addon `cmp_mrp_packages` 16.0.1.6.0
 actualizado en cmpslu, Odoo reiniciado y `./deploy/up.sh` ejecutado correctamente.
@@ -379,3 +384,26 @@ ubicación: permite imprimir primero la etiqueta y resolverla cuando se escanee 
 El selector de ubicación vacía el campo tras cada lectura, válida o errónea. Sólo
 marca una ubicación activa: leer otra válida sustituye la anterior. «Quitar ubicación»
 permite corregirla antes de confirmar. Un QR de OF o pallet no se selecciona aquí.
+
+
+## Recuperación tras recarga (30/10/2026)
+
+Se conservan la pantalla del PIN y empleado elegido (sin sus dígitos), la identidad
+verificada, OFs/pallets/ubicación seleccionados, destino de asociación, detalle leído,
+historial de navegación, ubicación obligatoria, creación/etiqueta abiertas y peticiones
+pendientes. La contraseña, PIN, CSRF y lecturas parciales no se guardan. La cámara se
+vuelve a abrir expresamente; no se solicitan permisos de cámara al restaurar.
+
+El arranque vuelve a consultar la cuenta y el perfil y luego comprueba los registros
+con las reglas nativas. Si han cambiado, se muestra su estado actual; los guardados
+pendientes conservan su propuesta original para recuperar el resultado de esa misma
+operación. Si un registro ya no está accesible, no se muestra su detalle almacenado y
+se conserva el borrador sin enviar operaciones. El alta incierta restaura «Reintentar
+creación» bloqueando cambios. Se guarda el UUID antes del envío, incluso si la recarga
+ocurre mientras se espera la primera respuesta.
+
+Cambiar de cuenta/operario elimina el estado anterior; la expiración obliga a
+identificarse otra vez. La recuperación no añade permisos ni extiende la vigencia del
+perfil. No garantiza recuperar después de cerrar pestaña/borrar datos del navegador;
+si éste bloquea sessionStorage se mantiene el acceso normal, pero sin recuperación.
+No es un modo de trabajo sin conexión ni una cola de sincronización automática.

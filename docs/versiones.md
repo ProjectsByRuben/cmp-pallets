@@ -274,3 +274,35 @@ tras cambiar cuenta y caducidad real de la sesión activa.
 
 Publicado en HTTPS con bundle `/assets/index-B9hauq8g.js` idéntico al build; servicio
 saludable y smoke test correcto.
+
+
+## Conservar pantalla y trabajo tras recarga — 30/10/2026
+
+Por petición expresa de Rubén se sustituye la regla anterior de perder la identidad
+al recargar: sessionStorage conserva el checkpoint de esta pestaña. PIN/contraseña y
+CSRF no se guardan ni se usa localStorage/URL. La pantalla del PIN conserva sólo el
+empleado elegido; su modo de creación/verificación vuelve a consultarse en Odoo.
+
+Un perfil guardado se valida contra la cuenta actual y el servicio de perfiles antes
+de mostrar el trabajo. No se emite un token nuevo ni se amplían sus ocho horas. Se
+vuelven a leer los registros con los permisos actuales, como máximo tres consultas
+simultáneas. Un registro inaccesible no muestra su detalle almacenado. Si cambia la
+cuenta, caduca la identidad o se cambia de operario, se elimina el checkpoint anterior.
+
+Se recuperan selección de OFs/pallets/ubicación, destino, detalle, navegación, posición
+de desplazamiento, ubicación obligatoria y diálogos de creación/etiqueta. Las lecturas
+parciales y la cámara no se reanudan automáticamente. Un alta/asociación/traslado
+pendiente conserva UUID y payload; se guardan antes del envío y nunca se reenvían al
+arrancar. El operario elige reintentar la misma operación. El traslado puede recuperar
+su respuesta incluso si los datos actuales ya muestran el destino alcanzado.
+
+Validación: 100 pruebas React y 33 de demo correctas, build correcto. Incluye PIN
+vacío tras recarga, perfil validado antes de mostrar registros, consulta de permisos,
+pérdida de respuesta y recarga durante el alta, misma petición en reintento, traslado
+y selección restaurados, expiración, cambio de cuenta/operario y almacenamiento
+bloqueado. La cámara se abre de nuevo expresamente. El navegador debe permitir
+sessionStorage; cerrar/borrar la pestaña no tiene garantía de recuperación.
+
+Activado en HTTPS con bundle `/assets/index-CJnwh5NS.js` idéntico al build validado,
+contenedor saludable y smoke test correcto. Imagen: `sha256:1fda3b380f6d3d047a272b7b9119ccb23442d494f885d34f1f52ce606c03db79`.
+No hay cambios de código/esquema Odoo ni reinicio de su servicio.
