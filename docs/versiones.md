@@ -260,3 +260,17 @@ no se altera el runtime ni el código del addon externo que generó la excepció
 
 Activado en HTTPS: `/assets/index-DKGEqCj0.js` coincide con el build; servicio saludable
 y smoke test correcto. No requiere reiniciar ni actualizar Odoo.
+
+
+## Arranque anónimo sin aviso de caducidad — 30/10/2026
+
+Al abrir o recargar sin sesión, incluida la pantalla de cambiar cuenta, bootstrap
+muestra el formulario de acceso sin aviso de sesión caducada. Sólo se normaliza la
+ausencia de sesión en la restauración inicial. Los fallos de red/acceso conservan
+su tratamiento y la caducidad durante el uso sigue mostrando el aviso y retirando
+la identidad anterior. No se guardan credenciales ni se restaura el perfil anterior.
+Validación: 90 pruebas React y 33 de demo correctas, build correcto; incluye recarga
+tras cambiar cuenta y caducidad real de la sesión activa.
+
+Publicado en HTTPS con bundle `/assets/index-B9hauq8g.js` idéntico al build; servicio
+saludable y smoke test correcto.

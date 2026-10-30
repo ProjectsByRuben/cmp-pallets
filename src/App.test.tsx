@@ -239,3 +239,33 @@ it('changes account using the real API adapter and Odoo void logout without relo
   const unlockCalls = fetcher.mock.calls.filter(call => call[0] === '/api/cmp_pallets/access/unlock');
   expect(JSON.parse(unlockCalls.at(-1)![1].body).params.csrf_token).toBe('csrf-second');
 });
+
+
+it('reloads the change-account screen as a clean anonymous login, with no expired-session warning', async () => {
+  const api = apiMock();
+  api.bootstrap.mockResolvedValueOnce({ ...initial, requires_pin: false });
+  const user = userEvent.setup();
+  const view = render(<App api={api}/>);
+  await screen.findByRole('heading', { name: 'Escanear' });
+  await user.click(screen.getByRole('button', { name: 'Cambiar cuenta' }));
+  await screen.findByLabelText('Usuario Odoo');
+  view.unmount();
+  api.bootstrap.mockRejectedValueOnce(new ApiError('La sesión ha caducado. Accede de nuevo.', 'session'));
+  render(<App api={api}/>);
+  expect(await screen.findByLabelText('Usuario Odoo')).toBeVisible();
+  expect(screen.getByLabelText('Contraseña')).toHaveValue('');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByText('Operario de prueba')).not.toBeInTheDocument();
+});
+
+it('still warns when an active session expires during use', async () => {
+  const api = apiMock();
+  api.bootstrap.mockResolvedValueOnce({ ...initial, requires_pin: false });
+  render(<App api={api}/>);
+  await screen.findByRole('heading', { name: 'Escanear' });
+  api.profile.mockRejectedValueOnce(new ApiError('La sesión ha caducado. Accede de nuevo.', 'session'));
+  fireEvent(window, new Event('focus'));
+  expect(await screen.findByLabelText('Usuario Odoo')).toBeVisible();
+  expect(screen.getByRole('alert')).toHaveTextContent('La sesión ha caducado. Accede de nuevo.');
+  expect(screen.queryByText('Operario de prueba')).not.toBeInTheDocument();
+});

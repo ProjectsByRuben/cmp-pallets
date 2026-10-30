@@ -100,7 +100,18 @@ export function App({ api = defaultApi }: { api?: AccessApi }) {
     finally { running.current = false; setBusy(false); }
   }
 
-  useEffect(() => { void run(bootstrap); }, [api]);
+  useEffect(() => {
+    void run(async () => {
+      try { await bootstrap(); }
+      catch (reason) {
+        // An anonymous initial load (including reload after logout) is normal.
+        // Expiry while using the app still goes through failed() with its notice.
+        if (!(reason instanceof ApiError) || reason.kind !== 'session') throw reason;
+        setError('');
+        setPage('login');
+      }
+    });
+  }, [api]);
 
   useEffect(() => {
     if (page === 'pin' && !busy) pinInput.current?.focus();
