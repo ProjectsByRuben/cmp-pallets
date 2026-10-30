@@ -235,3 +235,28 @@ recarga, renovación de CSRF, sesión caducada y rechazo de respuestas inválida
 
 Activado en HTTPS con bundle `/assets/index-BvY8EKst.js` idéntico al build validado,
 contenedor saludable y smoke test correcto.
+
+
+## Recuperar la base de sesión antes del segundo acceso — 30/10/2026
+
+Los logs confirmaron login válido seguido de AttributeError en session_info:
+tras destroy, session.db queda vacío y base_export_manager accede a request.env.
+Preparar sólo el bootstrap inicial no cubría el acceso posterior al logout. El
+adaptador comparte prepareSession entre bootstrap y login y vuelve a seleccionar
+cmpslu mediante /api/session/prepare antes de enviar credenciales después del cierre.
+No se modifica Odoo ni el addon externo. Sólo AccessDenied al autenticar se anuncia
+como credenciales incorrectas; los fallos internos reciben un mensaje seguro distinto.
+
+Validación web: 88 pruebas React y 33 de demo correctas; build correcto. El escenario
+App/adapter ahora simula que destroy pierde la selección de base y exige prepararla
+antes de autenticar, además de comprobar la renovación de perfil y CSRF.
+
+
+Prueba HTTP específica contra cmpslu correcta con cuenta sintética: cierre nativo,
+preparación de base, reautenticación real y bootstrap. Regresión guardada en el addon
+(commit 8e61e54), conservando rollback/GC desactivada y fixtures/secuencia intactos.
+Su adaptación de cursores de prueba y cookie inicial está documentada en el README;
+no se altera el runtime ni el código del addon externo que generó la excepción.
+
+Activado en HTTPS: `/assets/index-DKGEqCj0.js` coincide con el build; servicio saludable
+y smoke test correcto. No requiere reiniciar ni actualizar Odoo.

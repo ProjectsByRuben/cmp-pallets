@@ -154,3 +154,25 @@ it('still rejects malformed logout and missing results on other endpoints, and r
   await expect(api.profile('synthetic-token')).rejects.toMatchObject({ kind: 'network' });
   await expect(api.logout()).rejects.toMatchObject({ kind: 'network' });
 });
+
+
+it('reselects the database before authenticating after logout, rather than authenticating with an unprepared session', async () => {
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ jsonrpc: '2.0', id: 1 })))
+    .mockResolvedValueOnce(new Response('fresh login')).mockResolvedValueOnce(ok({ uid: 11 }));
+  const api = new OdooAccessApi(fetcher); await api.bootstrap(); await api.logout();
+  await expect(api.login('synthetic-second-account', 'synthetic-password')).resolves.toBeUndefined();
+  expect(fetcher.mock.calls.map(call => call[0])).toEqual([
+    '/api/session/prepare', '/api/cmp_pallets/access/bootstrap', '/api/web/session/destroy',
+    '/api/session/prepare', '/api/web/session/authenticate',
+  ]);
+});
+
+it('distinguishes actual credential rejection from an internal authentication failure without exposing details', async () => {
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response('login'))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ error: { data: { name: 'odoo.exceptions.AccessDenied' } } })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ error: { data: { name: 'builtins.AttributeError', message: 'internal detail' } } })));
+  const api = new OdooAccessApi(fetcher);
+  await expect(api.login('synthetic-account', 'wrong-synthetic-password')).rejects.toEqual(new ApiError('Usuario o contraseña incorrectos.', 'access'));
+  await expect(api.login('synthetic-account', 'synthetic-password')).rejects.toEqual(new ApiError('Odoo no ha podido iniciar la sesión. Vuelve a intentarlo.', 'network'));
+});

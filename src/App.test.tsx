@@ -211,11 +211,15 @@ describe('operator access screen', () => {
 
 it('changes account using the real API adapter and Odoo void logout without reloading', async () => {
   let signedInAsSecond = false;
+  let databaseSelected = false;
   const json = (result: unknown) => new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result }));
   const fetcher = vi.fn().mockImplementation(async (path: string) => {
-    if (path === '/api/session/prepare') return new Response('login');
-    if (path === '/api/web/session/destroy') return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1 }));
-    if (path === '/api/web/session/authenticate') { signedInAsSecond = true; return json({ uid: 11 }); }
+    if (path === '/api/session/prepare') { databaseSelected = true; return new Response('login'); }
+    if (path === '/api/web/session/destroy') { databaseSelected = false; return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1 })); }
+    if (path === '/api/web/session/authenticate') {
+      if (!databaseSelected) return new Response(JSON.stringify({ error: { data: { name: 'builtins.AttributeError', message: 'missing request.env' } } }));
+      signedInAsSecond = true; return json({ uid: 11 });
+    }
     if (path === '/api/cmp_pallets/access/bootstrap') return json({ ...initial, requires_pin: false, csrf_token: signedInAsSecond ? 'csrf-second' : 'csrf-first' });
     if (path === '/api/cmp_pallets/access/unlock') return json({ ok: true, token: signedInAsSecond ? 'token-second' : 'token-first', profile: { ...identity, name: signedInAsSecond ? 'Second operator' : 'First operator' } });
     throw new Error('Unexpected endpoint ' + path);

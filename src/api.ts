@@ -106,6 +106,10 @@ export class OdooAccessApi implements AccessApi {
       if (name.endsWith('SessionExpiredException')) {
         throw new ApiError('La sesión ha caducado. Accede de nuevo.', 'session');
       }
+      if (path === 'web/session/authenticate') {
+        if (name.endsWith('AccessDenied')) throw new ApiError('Usuario o contraseña incorrectos.', 'access');
+        throw new ApiError('Odoo no ha podido iniciar la sesión. Vuelve a intentarlo.', 'network');
+      }
       const safe = name.endsWith('AccessError') || name.endsWith('UserError');
       throw new ApiError(safe && typeof data.error.data.message === 'string' ? data.error.data.message : 'No se ha podido completar el acceso.', name.endsWith('UserError') ? 'business' : 'access');
     }
@@ -120,7 +124,7 @@ export class OdooAccessApi implements AccessApi {
     return data.result as T;
   }
 
-  async bootstrap(): Promise<Bootstrap> {
+  private async prepareSession(): Promise<void> {
     // A fresh browser must select the target database even on a multi-database
     // Odoo server. Use the native login page through a fixed proxy alias; no
     // credentials are sent and its HTML is never executed or injected.
@@ -135,6 +139,10 @@ export class OdooAccessApi implements AccessApi {
         throw new ApiError('No se puede conectar con Odoo. Comprueba la conexión y vuelve a intentarlo.', 'network');
       }
     }
+  }
+
+  async bootstrap(): Promise<Bootstrap> {
+    await this.prepareSession();
     const data = await this.rpc<Bootstrap>('cmp_pallets/access/bootstrap');
     if (!data || typeof data.csrf_token !== 'string' || !data.user || typeof data.user.name !== 'string' || typeof data.requires_pin !== 'boolean' || !Array.isArray(data.employees)
       || data.employees.some(item => !Number.isInteger(item.id) || typeof item.name !== 'string' || typeof item.pin_setup_required !== 'boolean')) {
@@ -146,14 +154,12 @@ export class OdooAccessApi implements AccessApi {
 
   async login(login: string, password: string): Promise<void> {
     this.csrf = '';
-    try {
-      const result = await this.rpc<{ uid?: number }>('web/session/authenticate', { db: __ODOO_DB__, login, password });
-      if (!result?.uid) throw new ApiError('Usuario o contraseña incorrectos.', 'access');
-      this.prepared = true;
-    } catch (error) {
-      if (error instanceof ApiError && error.kind === 'network') throw error;
-      throw new ApiError('Usuario o contraseña incorrectos.', 'access');
-    }
+    // Logout clears session.db too. Re-select the configured database before
+    // authenticating so installed session_info extensions have request.env.
+    await this.prepareSession();
+    const result = await this.rpc<{ uid?: number }>('web/session/authenticate', { db: __ODOO_DB__, login, password });
+    if (!result?.uid) throw new ApiError('Odoo no ha confirmado el acceso con esta cuenta.', 'access');
+    this.prepared = true;
   }
 
   private async identify(action: string, values: Record<string, unknown>): Promise<UnlockResult> {
