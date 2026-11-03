@@ -354,3 +354,15 @@ producto principal y referencia se muestran una vez cuando son comunes; los dato
 diferentes se detallan junto a cada OF para conservar sus correspondencias. No cambia
 la identidad del QR ni crea pallets. Ancho 100 mm, altura mínima 60 mm ampliable
 según el contenido; impresión A4 sin ocultar referencias ni OFs. Sólo cambia la web.
+
+### Odoo local a través de su dominio HTTPS — 03/11/2026
+
+Conexión publicada: rubenfernandez.cmp3.es:443, Host/SNI rubenfernandez.cmp3.es,
+base cmpslu. Verificación TLS y CA del sistema; validación del origen del navegador
+antes de la traducción al origen canónico del backend. No cambia el addon, las OFs,
+los pallets ni la base elegida. La sesión de la web sigue siendo de pallets.cmp3.es.
+
+104 pruebas React y 33 de demo correctas, build correcto, pruebas Docker aisladas de
+TLS/origen/Host/cookies/rutas correctas y comprobación anónima de la conexión real en
+un contenedor candidato. Sin uso de credenciales ni operaciones de negocio. El
+rollback conserva la imagen y su configuración pública de conexión anterior.

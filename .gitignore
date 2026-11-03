@@ -7,3 +7,7 @@ coverage/
 .env.*
 !.env.example
 *.tsbuildinfo
+
+.deploy-state/
+
+__pycache__/

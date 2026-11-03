@@ -42,3 +42,37 @@ No actualizar la base ni copiar datos/filestore para reorganizar fuentes.
 
 Los documentos de diseño y versiones conservan las rutas históricas como contexto;
 esta guía y AGENTS.md describen las ubicaciones vigentes.
+
+## Conexión por dominio HTTPS (03/11/2026)
+
+Por petición de Rubén, el contenedor compilado usa rubenfernandez.cmp3.es:443 y la
+base cmpslu. Sigue siendo el Odoo local restaurado; no apunta a odoo.cmp3.es ni a la
+instancia oficial. compose.yaml define CMP_ODOO_UPSTREAM (servidor:puerto),
+CMP_ODOO_HOST (nombre TLS/Host canónico) y CMP_ODOO_DB (también en build.args).
+Nginx utiliza HTTPS, SNI y verificación de certificado y nombre con la CA del sistema.
+
+La web sigue en https://pallets.cmp3.es y valida el Origin del navegador contra ese
+origen antes de reenviar. Después traduce Host, X-Forwarded-Host y el Origin no vacío
+al origen canónico HTTPS de Odoo. Un Origin ausente permanece ausente. Esto permite
+pasar por el proxy del dominio sin eliminar las comprobaciones del addon ni abrir
+CORS. Mantiene X-Forwarded-Proto: https, cookies Secure/HttpOnly/SameSite y las rutas
+limitadas. La preparación de base reescribe las redirecciones de login hacia la ruta
+local de preparación de sesión.
+
+El proxy Vite de desarrollo mantiene su conexión local por defecto; esta actualización
+cambia el servicio Docker publicado. No es necesario cambiar src/api.ts para elegir
+el servidor del servicio publicado.
+
+Pruebas de proxy aisladas: construir la imagen y ejecutar
+`python3 deploy/test_https_proxy.py`. Utiliza la imagen Odoo local sólo como intérprete
+Python de un servidor TLS sintético, sin arrancar Odoo ni acceder a su base. Prueba
+SNI/Host, traducción de Origin, bloqueo de Origin ajeno, rutas, cookies y rechazo de
+certificados no confiables o con nombre incorrecto. Elimina sus contenedores/red y
+claves sintéticas al terminar. Puede seleccionarse otra imagen de intérprete mediante
+CMP_PROXY_TEST_BACKEND_IMAGE.
+
+up.sh preserva la imagen y únicamente las variables públicas de conexión del
+contenedor anterior en .deploy-state/previous-runtime.yaml (ignorado por Git).
+rollback.sh combina esa configuración con la imagen anterior; así el retorno a una
+imagen que usaba HTTP local no conserva por error el nuevo destino HTTPS. No se
+exportan contraseñas, PIN, cookies, sesiones ni archivos runtime de Odoo.

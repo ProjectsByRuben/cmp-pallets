@@ -63,3 +63,12 @@ el DNS no basta para usar la aplicación: también se necesita el host HTTPS ant
 
 El destino no es el servidor Vite 4184. La demo Sites anterior continúa separada y
 no se ha modificado con este despliegue.
+
+## Destino Odoo tras el cambio del 03/11/2026
+
+La entrada de Pallets descrita arriba sigue siendo la misma. El cambio es el salto
+siguiente: el contenedor Pallets ahora llama por HTTPS a rubenfernandez.cmp3.es:443,
+base cmpslu, con certificado verificado. CMP_ODOO_HOST configura el nombre TLS y Host.
+La validación del Origin del navegador permanece en Pallets; sólo después de esa
+validación se traduce al origen HTTPS del backend. Este proxy del dominio debe
+conservar correctamente X-Forwarded-Proto. El destino no es odoo.cmp3.es.

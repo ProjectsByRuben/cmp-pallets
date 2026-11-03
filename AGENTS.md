@@ -93,3 +93,11 @@ request, never two independent browser mutations. Stable UUID and draft recovery
 remain mandatory. Full labels retain customer reference plus principal AND OF product;
 one pallet has one label and exactly one QR, containing all selected OFs. Label
 height grows for long contents; never omit OFs, references or products. Reprint on additions.
+
+HTTPS backend since 03/11/2026: published Docker web targets
+rubenfernandez.cmp3.es:443 with CMP_ODOO_HOST=rubenfernandez.cmp3.es and DB cmpslu.
+This remains the local test Odoo, never the official odoo.cmp3.es. Validate browser
+Origin before canonical backend Origin translation; preserve foreign-origin rejection,
+CSRF, allowlist and verified TLS/SNI. deploy/test_https_proxy.py uses disposable Docker
+TLS fixtures without Odoo credentials or business writes. up/rollback preserve only
+public connection variables under ignored .deploy-state, together with the old image.

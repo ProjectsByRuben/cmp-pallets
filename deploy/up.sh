@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 docker compose -f compose.yaml -p cmp-pallets config --quiet
 container=$(docker compose -f compose.yaml -p cmp-pallets ps -q web)
 if [ -n "$container" ]; then
+    python3 deploy/save_runtime.py "$container"
     current_image=$(docker inspect --format '{{.Image}}' "$container")
     docker image tag "$current_image" cmp-pallets-web:previous
 fi
