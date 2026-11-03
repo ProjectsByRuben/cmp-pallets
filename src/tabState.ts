@@ -4,7 +4,7 @@ const ACCESS = 'cmp.pallets.tab.access.v1';
 const WORK = 'cmp.pallets.tab.work.v1';
 export type SavedAccess = { page: 'login' | 'choose' | 'pin' | 'ready'; userId?: number; employeeId?: number; token?: string };
 export type PendingOperation = { kind: 'associate'; data: Association } | { kind: 'move'; data: Movement };
-export type CreationDraft = { location: LocationSummary | null; proposal: PalletCreation | null };
+export type CreationDraft = { productions?: ScanRecord[]; location: LocationSummary | null; proposal: PalletCreation | null };
 export type SavedWork = {
   selected: ScanRecord[]; pallets: ScanRecord[]; targetId: number | null; destination: ScanRecord | null;
   needsLocation: number | null; pending: PendingOperation | null; record: ScanRecord | null; previous: string[];
@@ -46,6 +46,7 @@ export function readWork(token: string): SavedWork | null {
     || !Array.isArray(s.previous) || s.previous.length > 20 || !s.previous.every(x => typeof x === 'string')
     || (s.pending !== null && (!s.pending || !['associate', 'move'].includes(s.pending.kind) || !s.pending.data || typeof s.pending.data.request_id !== 'string'))
     || (s.creation !== null && (!s.creation || (s.creation.proposal !== null && typeof s.creation.proposal?.request_id !== 'string')))
+    || (s.creation?.productions !== undefined && (!Array.isArray(s.creation.productions) || s.creation.productions.length > 100 || !s.creation.productions.every(record)))
     || (s.labelPallet !== null && (!id(s.labelPallet?.id) || typeof s.labelPallet.code !== 'string'))) return null;
   return s;
 }
@@ -53,6 +54,7 @@ export function saveWork(token: string, state: SavedWork) {
   write(WORK, { owner: token, state: { ...state,
     selected: state.selected.map(r => ({ ...r, items: [], next_offset: null })),
     pallets: state.pallets.map(r => ({ ...r, items: [], next_offset: null })),
+    creation: state.creation ? { ...state.creation, productions: state.creation.productions?.map(r => ({ ...r, items: [], next_offset: null })) } : null,
   } });
 }
 export function clearWork() { try { sessionStorage.removeItem(WORK); } catch { /* Optional browser storage. */ } }

@@ -33,9 +33,10 @@ export type Movement = {
 };
 export type MovementResult = { ok: true; moved: number; unchanged: number; location_code: string } | { ok: false; error: string; conflict?: boolean };
 
-export type PalletCreation = { request_id: string; location_id?: number };
+export type PalletCreation = { request_id: string; location_id?: number; productions?: { id: number; revision: string }[] };
+export type LabelContent = { of_code: string; customer_id: number | null; customer: string; project: string; reference: string; product: string; description: string; of_product: string; of_description: string };
 export type PalletCreated = { ok: true; pallet_id: number; pallet_code: string };
-export type PalletLabel = { ok: true; pallet_id: number; code: string; qr_payload: string; png_base64: string };
+export type PalletLabel = { ok: true; pallet_id: number; code: string; qr_payload: string; png_base64: string; printed_on?: string; contents?: LabelContent[] };
 
 export class ApiError extends Error {
   constructor(message: string, public kind: 'session' | 'access' | 'network' | 'business') {
@@ -233,6 +234,7 @@ export class OdooAccessApi implements AccessApi {
     if (result?.ok === true && result.pallet_id === palletId && typeof result.code === 'string'
       && /^P\d{2}-\d{5,}$/.test(result.code) && result.qr_payload === 'CMP:PALLET:' + result.code
       && typeof result.png_base64 === 'string' && result.png_base64.startsWith('iVBOR')
+      && (result.contents === undefined || (Array.isArray(result.contents) && result.contents.length <= 1000 && result.contents.every(row => ['of_code', 'customer', 'project', 'reference', 'product', 'description', 'of_product', 'of_description'].every(key => typeof row[key as keyof LabelContent] === 'string'))))
       && result.png_base64.length < 1000000 && /^[A-Za-z0-9+/=]+$/.test(result.png_base64)) return result;
     throw new ApiError('No se ha podido obtener la etiqueta del pallet.', 'network');
   }

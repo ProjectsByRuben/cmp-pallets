@@ -125,23 +125,34 @@ input[type=password] { letter-spacing: .15em; }
 .creation-location { display:flex; gap:12px; align-items:center; padding:12px 0; }
 .creation-location input { width:22px; height:22px; flex-shrink:0; }
 .label-modal { max-width:560px; }
-.pallet-label { box-sizing:border-box; width:100%; max-width:100mm; aspect-ratio:5/3; border:1px dashed #64748b; padding:5mm; display:flex; align-items:center; gap:3mm; background:white; color:#000; margin:16px auto; }
-.pallet-label img { width:42%; height:auto; image-rendering:pixelated; }
-.pallet-label div { display:flex; flex-direction:column; gap:3mm; min-width:0; }
-.pallet-label span { font-size:13px; font-weight:700; letter-spacing:.15em; }
-.pallet-label strong { font-size:clamp(16px, 4.5vw, 24px); overflow-wrap:anywhere; line-height:1.15; }
-.pallet-label small { font-size:11px; line-height:1.4; }
+.creation-orders { list-style:none; padding:0; max-height:210px; overflow:auto; }
+.creation-orders li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+.creation-orders li div { display:grid; gap:4px; min-width:0; overflow-wrap:anywhere; }
+.creation-orders li span { color:var(--muted); font-size:13px; }
+.label-sheet { overflow-x:auto; }
+.pallet-label { box-sizing:border-box; width:100mm; min-height:60mm; border:.2mm dashed #64748b; padding:3mm 4mm; background:white; color:#000; margin:16px auto; font:7pt/1.25 Arial,sans-serif; overflow-wrap:anywhere; }
+.label-heading { display:flex; justify-content:space-between; align-items:center; border-bottom:1mm solid #e80012; margin:-3mm -4mm 2mm; padding:2mm 4mm; background:#24282d; color:white; }
+.label-heading img { width:18mm; height:auto; }
+.label-heading strong { font-size:18pt; line-height:1; }
+.pallet-label .label-qr { float:right; width:29mm; height:29mm; image-rendering:pixelated; margin:0 -1mm 1mm 2mm; }
+.label-business { display:flex; flex-direction:column; gap:.5mm; min-height:29mm; }
+.label-business small { color:#555; font-size:5.5pt; margin-top:.5mm; }
+.label-business b { font-size:9pt; }
+.label-business strong { font-size:11pt; }
+.label-business span { font-size:6pt; }
+.label-reference { clear:both; font-size:7pt; line-height:1.4; padding-top:1mm; }
+.pallet-label footer { border-top:.2mm solid #ccc; margin-top:1mm; padding-top:1mm; font-size:5.5pt; color:#555; }
 .label-actions { display:flex; flex-direction:column; align-items:center; gap:8px; }
 .print-help { color:var(--muted, #475569); font-size:14px; line-height:1.5; }
 @page { size:A4 portrait; margin:10mm; }
 @media print {
-  body { background:white !important; }
+  body { background:white !important; margin:0 !important; }
   body * { visibility:hidden !important; }
   .pallet-label, .pallet-label * { visibility:visible !important; }
-  .pallet-label { position:fixed; left:0; top:0; margin:0; width:100mm; height:60mm; max-width:none; border:0.2mm dashed #64748b; print-color-adjust:exact; }
-  .pallet-label strong { font-size:19pt; }
-  .pallet-label span { font-size:10pt; }
-  .pallet-label small { font-size:8pt; }
+  .pallet-label { margin:0; width:100mm; min-height:60mm; max-width:none; break-inside:avoid; break-after:page; print-color-adjust:exact; }
+  .pallet-label:last-child { break-after:auto; }
+  .label-sheet { overflow:visible; }
+  .label-modal > :not(.label-sheet) { display:none !important; }
   .label-backdrop, .label-modal { position:static !important; display:block !important; overflow:visible !important; max-height:none !important; padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; background:white !important; }
   .scan-workspace { display:none !important; }
 }

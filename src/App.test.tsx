@@ -343,9 +343,18 @@ describe('reload checkpoints', () => {
     api.createPallet.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     const { view } = await enter(api);
     fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    api.locations.mockResolvedValue({ ok: true, items: [pallet.location!], next_offset: null });
+    const reader = screen.getByLabelText('Escanear OF o ubicación');
+    fireEvent.change(reader, { target: { value: order.code } }); fireEvent.submit(reader.closest('form')!);
+    await screen.findByRole('button', { name: 'Quitar OF ' + order.code });
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + pallet.location!.code }));
     fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
     await waitFor(() => expect(api.createPallet).toHaveBeenCalledTimes(1));
     const original = api.createPallet.mock.calls[0];
+    const lookup = api.lookup.getMockImplementation()!;
+    api.lookup.mockImplementation(async (token, code, offset) => code.endsWith(':' + pallet.location!.code)
+      ? { ok: true, record: { kind: 'location', id: pallet.location!.id, code: pallet.location!.code, title: pallet.location!.name, active: true, items: [], next_offset: null } }
+      : lookup(token, code, offset));
     view.unmount(); render(<App api={api}/>);
     const retry = await screen.findByRole('button', { name: 'Reintentar creación' });
     expect(api.createPallet).toHaveBeenCalledTimes(1);

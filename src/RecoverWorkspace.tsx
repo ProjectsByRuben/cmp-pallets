@@ -21,6 +21,7 @@ export function RecoverWorkspace(props: ComponentProps<typeof ScanWorkspace>) {
       if (r) refs.set(`${r.kind}:${r.id}`, r);
     }
     for (const r of [...saved.selected, ...saved.pallets, saved.record, saved.destination]) add(r);
+    for (const r of saved.creation?.productions ?? []) add(r);
     if (saved.creation?.location) add({ ...saved.creation.location, kind: 'location' });
     const fresh = new Map<string, ScanRecord>();
     const queue = [...refs.values()];
@@ -39,8 +40,8 @@ export function RecoverWorkspace(props: ComponentProps<typeof ScanWorkspace>) {
         record: current(saved.record),
         destination: !saved.pending && saved.destination && current(saved.destination)?.active === false ? null : current(saved.destination),
         needsLocation: !saved.pending && saved.needsLocation && fresh.get(`pallet:${saved.needsLocation}`)?.location ? null : saved.needsLocation,
-        creation: saved.creation && !saved.creation.proposal && saved.creation.location
-          && fresh.get(`location:${saved.creation.location.id}`)?.active === false ? { ...saved.creation, location: null } : saved.creation });
+        creation: saved.creation ? { ...saved.creation, productions: saved.creation.productions?.map(r => current(r)!),
+          location: !saved.creation.proposal && saved.creation.location && fresh.get(`location:${saved.creation.location.id}`)?.active === false ? null : saved.creation.location } : null });
       setLoading(false);
     }).catch(reason => {
       stopped = true;

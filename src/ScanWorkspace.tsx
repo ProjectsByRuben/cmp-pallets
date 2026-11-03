@@ -52,7 +52,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   }));
 
   const snapshot = (): SavedWork => ({ selected, pallets, targetId, destination, needsLocation, pending, record, previous,
-    creation: creating ? creationDraft ?? { location: destination ? { id: destination.id, code: destination.code, name: destination.title } : null, proposal: null } : null,
+    creation: creating ? creationDraft ?? { productions: selected, location: destination ? { id: destination.id, code: destination.code, name: destination.title } : null, proposal: null } : null,
     labelPallet, scrollY: window.scrollY });
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
@@ -204,8 +204,9 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
       }
       home();
       const placementNotice = needsLocation && destination ? ` Ubicación ${destination.code} confirmada.` : '';
+      if ('pallet_code' in result && result.added > 0 && proposal.kind === 'associate') setLabelPallet({ id: proposal.data.pallet_id, code: result.pallet_code });
       setNotice(('pallet_code' in result
-        ? `Asociación confirmada en ${result.pallet_code}: ${result.added} OFs añadidas.`
+        ? `Asociación confirmada en ${result.pallet_code}: ${result.added} OFs añadidas. Reimprime y sustituye la etiqueta anterior.`
         : `Traslado confirmado a ${result.location_code}: ${result.moved} pallets movidos; ${result.unchanged} ya estaban allí.`) + placementNotice);
     } catch (reason) {
       if (current !== version.current) return;
@@ -316,10 +317,10 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
     {manual && <div className="modal-backdrop"><section className="scan-modal" role="dialog" aria-modal="true" aria-labelledby="manual-title" onKeyDown={event => modalKeys(event, closeManual)}><div className="modal-heading"><h2 id="manual-title">Introducir código</h2><button className="icon-action" aria-label="Cerrar entrada manual" onClick={closeManual}>×</button></div><form onSubmit={submitManual}><label htmlFor="manual-code">OF, pallet o ubicación</label><input id="manual-code" autoFocus autoComplete="off" autoCapitalize="none" spellCheck={false} value={manualCode} onChange={event => setManualCode(event.target.value)} required maxLength={256}/><button className="primary-action" disabled={!manualCode.trim()}>Consultar</button></form></section></div>}
     {camera && <Camera onClose={() => setCamera(false)} onRead={code => { setCamera(false); void read(code); }}/>}
   </main>
-    {creating && <CreatePalletDialog api={api} token={token} destination={destination} initialDraft={creationDraft ?? undefined} onDraftChange={draft => {
+    {creating && <CreatePalletDialog selected={selected} api={api} token={token} destination={destination} initialDraft={creationDraft ?? undefined} onDraftChange={draft => {
       setCreationDraft(draft); saveWork(token, { ...snapshot(), creation: draft });
     }} onClose={() => { setCreating(false); setCreationDraft(null); }} onAccessError={onAccessError} onCreated={result => {
-      setCreating(false); setCreationDraft(null); setTargetId(result.pallet_id); setLabelPallet({ id: result.pallet_id, code: result.pallet_code });
+      setCreating(false); setCreationDraft(null); setSelected([]); setTargetId(result.pallet_id); setLabelPallet({ id: result.pallet_id, code: result.pallet_code });
       void read('CMP:PALLET:' + result.pallet_code, 'new', true);
     }}/>}
     {labelPallet && <PalletLabelDialog api={api} token={token} pallet={labelPallet} onClose={() => setLabelPallet(null)} onAccessError={onAccessError}/>}

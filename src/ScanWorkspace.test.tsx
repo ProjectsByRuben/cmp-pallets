@@ -12,7 +12,7 @@ const production: ScanRecord = { ...of, items: [pallet] };
 function mockApi() {
   return {
     bootstrap: vi.fn(), login: vi.fn(), unlock: vi.fn(), setupPin: vi.fn(), profile: vi.fn(), lock: vi.fn(), logout: vi.fn(),
-    locations: vi.fn<AccessApi['locations']>().mockResolvedValue({ ok: true, items: [], next_offset: null }),
+    locations: vi.fn<AccessApi['locations']>().mockResolvedValue({ ok: true, items: [location], next_offset: null }),
     createPallet: vi.fn<AccessApi['createPallet']>().mockResolvedValue({ ok: true, pallet_id: 2, pallet_code: 'P26-00001' }),
     label: vi.fn<AccessApi['label']>().mockResolvedValue({ ok: true, pallet_id: 2, code: 'P26-00001', qr_payload: 'CMP:PALLET:P26-00001', png_base64: 'iVBORw0KGgo=' }),
     move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
@@ -491,19 +491,21 @@ describe('flexible selection and group movement', () => {
 
 
 describe('pallet creation and printing entry points', () => {
-  it('creates once, opens its label and keeps selected OFs for explicit association', async () => {
+  it('creates once with selected OFs and location and opens its complete label', async () => {
     const { api } = open();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Código de OF, pallet o ubicación'), production.code + '{Enter}');
     await screen.findByRole('heading', { name: production.code });
     await user.click(screen.getByRole('button', { name: /Crear pallet/ }));
     expect(api.createPallet).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
     await user.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
     expect(await screen.findByRole('dialog', { name: /Etiqueta/ })).toBeVisible();
     expect(api.createPallet).toHaveBeenCalledTimes(1);
     expect(api.associate).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Cerrar etiqueta' }));
-    expect(await screen.findByRole('region', { name: 'Asociación pendiente' })).toHaveTextContent(production.code);
+    expect(screen.queryByRole('region', { name: 'Asociación pendiente' })).not.toBeInTheDocument();
+    expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ productions: [{ id: production.id, revision: production.revision }], location_id: location.id }));
     expect(screen.getByRole('region', { name: 'Pallets seleccionados' })).toHaveTextContent(pallet.code);
   });
 
@@ -530,6 +532,9 @@ describe('pallet creation and printing entry points', () => {
     open(api);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    await user.type(screen.getByLabelText('Escanear OF o ubicación'), production.code + '{Enter}');
+    await screen.findByRole('button', { name: 'Quitar OF ' + production.code });
+    await user.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
     await user.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('evitar duplicados');
     expect(screen.getByRole('button', { name: 'Cerrar creación' })).toBeDisabled();
@@ -540,7 +545,7 @@ describe('pallet creation and printing entry points', () => {
     expect(api.createPallet.mock.calls[0]).toEqual(api.createPallet.mock.calls[1]);
   });
 
-  it('uses only the explicitly accepted scanned location and creates no OF link implicitly', async () => {
+  it('uses only the explicitly accepted scanned location and explicitly includes the scanned OF', async () => {
     const api = mockApi();
     const original = api.lookup.getMockImplementation()!;
     api.lookup.mockImplementation(async (token, code, offset) => code === location.code
@@ -553,6 +558,8 @@ describe('pallet creation and printing entry points', () => {
     await user.click(screen.getByRole('button', { name: /Crear pallet/ }));
     expect(screen.getByText('Ubicación elegida:')).toHaveTextContent('Ubicación elegida:');
     expect(screen.getByRole('dialog')).toHaveTextContent(location.code);
+    await user.type(screen.getByLabelText('Escanear OF o ubicación'), production.code + '{Enter}');
+    await screen.findByRole('button', { name: 'Quitar OF ' + production.code });
     await user.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
     await screen.findByRole('dialog', { name: /Etiqueta/ });
     expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));
@@ -560,6 +567,65 @@ describe('pallet creation and printing entry points', () => {
   });
 });
 
+
+describe('creation contents and complete labels', () => {
+  async function scanInDialog(code: string) {
+    const input = screen.getByLabelText('Escanear OF o ubicación');
+    fireEvent.change(input, { target: { value: code } });
+    fireEvent.submit(input.closest('form')!);
+    await waitFor(() => expect(input).not.toBeDisabled());
+    expect(input).toHaveValue('');
+  }
+  it('accepts several OFs, rejects pallets and duplicates, and allows removing any OF', async () => {
+    const api = mockApi();
+    const second = { ...production, id: 7, code: 'OF99-00007' };
+    const original = api.lookup.getMockImplementation()!;
+    api.lookup.mockImplementation(async (token, code, offset) => code === second.code ? { ok: true, record: second } : original(token, code, offset));
+    open(api);
+    fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    await scanInDialog(production.code); await scanInDialog(second.code);
+    expect(screen.getByRole('region', { name: 'OFs del nuevo pallet' })).toHaveTextContent('OFs incluidas · 2');
+    await scanInDialog(production.code);
+    expect(screen.getByRole('alert')).toHaveTextContent('ya está incluida');
+    await scanInDialog(pallet.code);
+    expect(screen.getByRole('alert')).toHaveTextContent('No se ha añadido');
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar OF ' + production.code }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
+    await screen.findByRole('dialog', { name: /Etiqueta/ });
+    expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ productions: [{ id: second.id, revision: second.revision }] }));
+  });
+  it('allows correcting the selection when Odoo rejects mixed customers', async () => {
+    const api = mockApi();
+    api.createPallet.mockRejectedValueOnce(new ApiError('Un pallet no puede contener OFs de distintos clientes.', 'business'));
+    open(api); fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    await scanInDialog(production.code);
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('distintos clientes');
+    expect(screen.getByRole('button', { name: 'Quitar OF ' + production.code })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar OF ' + production.code }));
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+  });
+  it('keeps customer reference and both products on every OF label with the same pallet QR', async () => {
+    const api = mockApi();
+    const row = { of_code: production.code, customer_id: 30, customer: 'Cliente de prueba', project: 'PROY-01', reference: 'REF-CLIENTE-01', product: 'BB-PRUEBA', description: 'Conjunto de prueba', of_product: 'KIT-PRUEBA', of_description: 'Kit de prueba' };
+    api.label.mockResolvedValue({ ok: true, pallet_id: pallet.id, code: pallet.code, qr_payload: 'CMP:PALLET:' + pallet.code, png_base64: 'iVBORw0KGgo=', printed_on: '2026-11-03', contents: [row, { ...row, of_code: 'OF99-00007', reference: 'REF-CLIENTE-02' }] });
+    open(api);
+    const field = screen.getByLabelText('Código de OF, pallet o ubicación');
+    fireEvent.change(field, { target: { value: pallet.code } }); fireEvent.submit(field.closest('form')!);
+    await screen.findByRole('heading', { name: pallet.code });
+    fireEvent.click(screen.getByRole('button', { name: 'Ver QR / Imprimir etiqueta' }));
+    expect(await screen.findByText('REF-CLIENTE-01')).toBeVisible();
+    expect(screen.getByText('REF-CLIENTE-02')).toBeVisible();
+    expect(screen.getAllByText('BB-PRUEBA')).toHaveLength(2);
+    expect(screen.getAllByText('Cliente de prueba')).toHaveLength(2);
+    const images = screen.getAllByAltText('QR del pallet ' + pallet.code);
+    expect(images).toHaveLength(2); expect(images[0].getAttribute('src')).toBe(images[1].getAttribute('src'));
+    expect(screen.getByRole('dialog')).toHaveTextContent('KIT-PRUEBA');
+    expect(api.createPallet).not.toHaveBeenCalled();
+  });
+});
 
 describe('mandatory placement for unlocated pallets', () => {
   const empty: ScanRecord = { ...pallet, location: null, items: [] };
@@ -632,29 +698,33 @@ describe('mandatory placement for unlocated pallets', () => {
     expect(await screen.findByRole('heading', { name: production.code })).toBeVisible();
     expect(api.move).not.toHaveBeenCalled(); expect(api.associate).not.toHaveBeenCalled();
   });
-  it('allows creating without location and printing first, but requires location when that pallet is scanned', async () => {
+  it('requires at least one OF and a location before allowing creation', async () => {
     const api = fixture(); open(api);
     fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
-    await screen.findByRole('dialog', { name: /Etiqueta/ });
-    expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.not.objectContaining({ location_id: expect.anything() }));
-    expect(screen.queryByRole('region', { name: 'Ubicación obligatoria' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar etiqueta' }));
-    await waitFor(() => expect(screen.getByLabelText('Código de OF, pallet o ubicación')).not.toBeDisabled());
-    await read(empty.code);
-    expect(screen.getByRole('region', { name: 'Ubicación obligatoria' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+    const field = screen.getByLabelText('Escanear OF o ubicación');
+    fireEvent.change(field, { target: { value: production.code } }); fireEvent.submit(field.closest('form')!);
+    await screen.findByRole('button', { name: 'Quitar OF ' + production.code });
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar ubicación' }));
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+    expect(api.createPallet).not.toHaveBeenCalled();
   });
-  it.each(['{Enter}', '{Tab}'])('focuses the creation location reader immediately and accepts a scan ending with %s', async suffix => {
+  it.each(['{Enter}', '{Tab}'])('focuses the creation reader immediately and accepts a scan ending with %s', async suffix => {
     const api = fixture(); open(api);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /Crear pallet/ }));
-    const reader = screen.getByLabelText('Buscar o escanear ubicación existente');
+    const reader = screen.getByLabelText('Escanear OF o ubicación');
     await waitFor(() => expect(reader).toHaveFocus());
-    expect(screen.getByRole('status', { name: 'Estado del lector de ubicación' })).toHaveAttribute('data-ready', 'true');
+    expect(screen.getByRole('status', { name: 'Estado del lector de creación' })).toHaveAttribute('data-ready', 'true');
     await user.keyboard('CMP:LOC:' + location.code + suffix);
     await screen.findByText('Ubicación elegida:');
     expect(screen.getByRole('dialog')).toHaveTextContent(location.code);
     expect(api.createPallet).not.toHaveBeenCalled();
+    await user.type(reader, production.code + '{Enter}');
+    await screen.findByRole('button', { name: 'Quitar OF ' + production.code });
     await user.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
     await screen.findByRole('dialog', { name: /Etiqueta/ });
     expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));
@@ -664,6 +734,9 @@ describe('mandatory placement for unlocated pallets', () => {
     const api = fixture(); open(api);
     fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
+    const reader = screen.getByLabelText('Escanear OF o ubicación');
+    fireEvent.change(reader, { target: { value: production.code } }); fireEvent.submit(reader.closest('form')!);
+    await screen.findByRole('button', { name: 'Quitar OF ' + production.code });
     fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
     await screen.findByRole('dialog', { name: /Etiqueta/ });
     expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));

@@ -85,3 +85,10 @@ Mutation IDs/payloads are saved synchronously before dispatch and restored as ex
 retries, never auto-submitted; creation drafts follow the same rule. Logout, operator
 switch, invalid identity and account changes clear prior state. Reload never issues a
 new operator token to extend its lifetime. PIN screen restores employee but no digits.
+
+Creation since 03/11/2026 supersedes the former empty web creation: retain Create
+pallet, require at least one OF and a location; prefill current OF selection and allow
+scanning/removing within the modal. Save contents/location/creation in one server
+request, never two independent browser mutations. Stable UUID and draft recovery
+remain mandatory. Full labels retain customer reference plus principal AND OF product;
+several OFs produce several labels sharing the same pallet QR. Reprint on additions.

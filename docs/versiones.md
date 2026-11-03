@@ -326,3 +326,22 @@ reales ni se modificaron datos para revisar el diseño.
 
 Publicado en HTTPS: `/assets/index-CIaSWW-x.js` y `/assets/index-BufIAPeB.css` coinciden con el build; servicio
 saludable y smoke test correcto. La imagen anterior se conserva para rollback.
+
+### Creación con OFs y etiqueta comercial — 03/11/2026
+
+Crear pallet permanece disponible tanto con OFs seleccionadas como sin selección.
+Su diálogo acepta OFs y ubicación por lector, permite quitar OFs y cambiar ubicación,
+y exige al menos una OF y una ubicación antes de confirmar. La ruta create guarda
+el pallet con su contenido y ubicación de forma atómica; no se usa una segunda
+asociación desde el navegador. Conserva UUID/payload ante pérdida de respuesta y
+restaura el borrador al recargar, validando los registros con Odoo. Addon requerido:
+cmp_mrp_packages 16.0.1.11.0. Odoo rechaza clientes distintos, OFs canceladas,
+selecciones obsoletas y accesos no permitidos. Los valores comerciales ausentes
+aparecen como «Sin dato».
+
+La etiqueta se genera con datos actuales: cliente, proyecto, referencia del cliente,
+producto principal, producto OF, OF, fecha, código y QR. Para varias OFs se imprime
+una etiqueta por OF, una página A4 por etiqueta, con el mismo QR del pallet. Tamaño
+nominal 100 × 60 mm; los textos excepcionalmente largos pueden ampliar la altura para
+no recortar datos. Tras añadir OFs a un pallet existente se abre la reimpresión y
+se indica sustituir las etiquetas anteriores. No se cambia el QR al cambiar contenido.
