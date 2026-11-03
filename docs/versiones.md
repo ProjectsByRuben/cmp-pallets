@@ -372,3 +372,19 @@ anónima cmpslu preparada por el puerto local reconocida por el dominio HTTPS, s
 usar cuentas reales. La versión de recuperación 917d3a2 se reconstruyó desde su Git
 tras detectar que Docker había retirado la imagen del contenedor original; se
 comprobaron su Nginx y sus assets contra la versión que estaba en ejecución.
+
+### URL y base configuradas al arrancar — 03/11/2026
+
+CMP_APP_URL, CMP_ODOO_URL y CMP_ODOO_DB son la configuración pública del compose.
+Se elimina la base fija de la compilación; Nginx genera runtime-config.js sin caché
+y React lo carga antes de acceder. Misma imagen para otras bases y dominios, sin
+editar Nginx. Cambio de entorno descarta el checkpoint de la pestaña al recargar;
+configuración ausente bloquea el envío de credenciales. Se conservan TLS verificado,
+SNI, validación/traducción de Origin, CSRF, cookies seguras y rutas limitadas.
+
+108 pruebas React y 33 de demo correctas, build correcto y pruebas Docker correctas:
+misma imagen con dos bases y dominios públicos distintos (incluido puerto distinto),
+preparación de sesión de cada base, certificados/nombres incorrectos rechazados y
+orígenes ajenos bloqueados. Candidato real verificado en rubenfernandez.cmp3.es y
+cmpslu, sin credenciales ni escrituras de negocio. Addon y política de cuentas
+compartidas sin cambios.

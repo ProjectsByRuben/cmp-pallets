@@ -4,11 +4,9 @@ services:
     image: cmp-pallets-web:local
     build:
       context: .
-      args:
-        CMP_ODOO_DB: cmpslu
     environment:
-      CMP_ODOO_UPSTREAM: rubenfernandez.cmp3.es:443
-      CMP_ODOO_HOST: rubenfernandez.cmp3.es
+      CMP_APP_URL: https://pallets.cmp3.es
+      CMP_ODOO_URL: https://rubenfernandez.cmp3.es
       CMP_ODOO_DB: cmpslu
     ports:
       - "0.0.0.0:4180:8080"

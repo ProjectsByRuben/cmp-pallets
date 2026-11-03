@@ -72,3 +72,12 @@ base cmpslu, con certificado verificado. CMP_ODOO_HOST configura el nombre TLS y
 La validación del Origin del navegador permanece en Pallets; sólo después de esa
 validación se traduce al origen HTTPS del backend. Este proxy del dominio debe
 conservar correctamente X-Forwarded-Proto. El destino no es odoo.cmp3.es.
+
+## Variables simplificadas (revisión posterior del 03/11/2026)
+
+Usar CMP_APP_URL para el dominio HTTPS de Pallets, CMP_ODOO_URL para la URL HTTPS raíz
+del backend y CMP_ODOO_DB para su base. El arranque calcula upstream, puerto, TLS y
+orígenes desde estas variables. Sustituyen los antiguos CMP_ODOO_HOST/UPSTREAM y la
+base repetida en build.args. Cambios de configuración requieren recrear el contenedor,
+sin recompilar React. La entrada del proxy central debe corresponder a CMP_APP_URL;
+el addon sigue siendo necesario en cada Odoo destino.

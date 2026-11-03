@@ -20,8 +20,8 @@ http {
     # The LAN HTTP upstream is not an alternative browser login origin.
     map "$http_host|$http_x_forwarded_proto" $secure_app_origin {
         default 0;
-        "pallets.cmp3.es|https" 1;
-        "pallets.cmp3.es:443|https" 1;
+        "${CMP_APP_AUTHORITY}|https" 1;
+        ${CMP_APP_ALT_HOST_LINE}
     }
     map $http_x_forwarded_for $original_client {
         "" $remote_addr;
@@ -30,27 +30,27 @@ http {
     map $http_origin $valid_origin {
         default 0;
         "" 1;
-        "https://pallets.cmp3.es" 1;
+        "${CMP_APP_ORIGIN}" 1;
     }
     # Validate the browser's origin above before translating it to the HTTPS
     # backend's canonical origin. The remote proxy may replace forwarded hosts.
     map $http_origin $odoo_origin {
         "" "";
-        default "https://${CMP_ODOO_HOST}";
+        default "${CMP_ODOO_ORIGIN}";
     }
     upstream odoo { server ${CMP_ODOO_UPSTREAM}; }
 
     server {
         listen 8080 default_server;
-        server_name pallets.cmp3.es;
+        server_name ${CMP_APP_HOST};
         absolute_redirect off;
         root /usr/share/nginx/html;
         index index.html;
         include /opt/cmp/security-headers.conf;
 
-        proxy_set_header Host ${CMP_ODOO_HOST};
+        proxy_set_header Host ${CMP_ODOO_AUTHORITY};
         proxy_set_header Origin $odoo_origin;
-        proxy_set_header X-Forwarded-Host ${CMP_ODOO_HOST};
+        proxy_set_header X-Forwarded-Host ${CMP_ODOO_AUTHORITY};
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
         proxy_set_header X-Forwarded-For $original_client;
         proxy_set_header Connection "";
@@ -68,6 +68,12 @@ http {
         proxy_cookie_flags session_id secure httponly samesite=lax;
         proxy_hide_header Cache-Control;
 
+        location = /runtime-config.js {
+            alias /tmp/runtime-config.js;
+            default_type application/javascript;
+            add_header Cache-Control no-store always;
+            include /opt/cmp/security-headers.conf;
+        }
         location = /healthz {
             access_log off;
             default_type text/plain;

@@ -1,3 +1,5 @@
+import { getRuntimeConfig } from './runtimeConfig';
+
 export type Role = 'operator' | 'admin';
 export type Profile = { employee_id: number; name: string; role: Role };
 export type Employee = { id: number; name: string; pin_setup_required: boolean };
@@ -62,7 +64,6 @@ export interface AccessApi {
   lookup(token: string, code: string, offset?: number): Promise<LookupResult>;
 }
 
-declare const __ODOO_DB__: string;
 
 function profile(value: unknown): Profile {
   const item = value as Partial<Profile> | null;
@@ -130,6 +131,7 @@ export class OdooAccessApi implements AccessApi {
     // Odoo server. Use the native login page through a fixed proxy alias; no
     // credentials are sent and its HTML is never executed or injected.
     if (!this.prepared) {
+      try { getRuntimeConfig(); } catch (reason) { throw new ApiError(reason instanceof Error ? reason.message : 'Configuración de conexión no disponible.', 'network'); }
       try {
         const response = await this.fetcher('/api/session/prepare', {
           credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000),
@@ -158,7 +160,7 @@ export class OdooAccessApi implements AccessApi {
     // Logout clears session.db too. Re-select the configured database before
     // authenticating so installed session_info extensions have request.env.
     await this.prepareSession();
-    const result = await this.rpc<{ uid?: number }>('web/session/authenticate', { db: __ODOO_DB__, login, password });
+    const result = await this.rpc<{ uid?: number }>('web/session/authenticate', { db: getRuntimeConfig().database, login, password });
     if (!result?.uid) throw new ApiError('Odoo no ha confirmado el acceso con esta cuenta.', 'access');
     this.prepared = true;
   }

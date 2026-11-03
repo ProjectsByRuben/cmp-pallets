@@ -55,14 +55,14 @@ server.serve_forever()
 ''')
         docker("network", "create", network)
         try:
-            containers.append(docker("run", "-d", "--network", network, "--network-alias", "fixture-odoo",
+            containers.append(docker("run", "-d", "--network", network, "--network-alias", "fixture-odoo", "--network-alias", "wrong-host.invalid",
                                      "-v", f"{folder}:/fixtures:ro", "--entrypoint", "python3", backend_image,
                                      "-u", "/fixtures/backend.py"))
 
-            def launch(trust=True, host="fixture-odoo"):
+            def launch(trust=True, host="fixture-odoo", database="cmpslu", app_url="https://pallets.cmp3.es"):
                 args = ["run", "-d", "--network", network, "-p", "127.0.0.1::8080",
-                        "-e", "CMP_ODOO_UPSTREAM=fixture-odoo:8443", "-e", f"CMP_ODOO_HOST={host}",
-                        "-e", "CMP_ODOO_DB=cmpslu", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,mode=1777"]
+                        "-e", f"CMP_ODOO_URL=https://{host}:8443", "-e", f"CMP_APP_URL={app_url}",
+                        "-e", f"CMP_ODOO_DB={database}", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,mode=1777"]
                 if trust:
                     args += ["-v", f"{folder / 'cert.pem'}:/etc/ssl/certs/ca-certificates.crt:ro"]
                 container = docker(*args, web_image)
@@ -78,10 +78,10 @@ server.serve_forever()
                         time.sleep(0.25)
                 raise AssertionError("Fixture proxy did not start: " + docker("logs", container))
 
-            def request(base, path="/api/cmp_pallets/lookup", forwarded=True, origin="https://pallets.cmp3.es", method="POST"):
+            def request(base, path="/api/cmp_pallets/lookup", forwarded=True, origin="https://pallets.cmp3.es", method="POST", app_host="pallets.cmp3.es"):
                 headers = {"Content-Type": "application/json"}
                 if forwarded:
-                    headers.update({"Host": "pallets.cmp3.es", "X-Forwarded-Proto": "https"})
+                    headers.update({"Host": app_host, "X-Forwarded-Proto": "https"})
                 if origin is not None:
                     headers["Origin"] = origin
                 body = b'{"jsonrpc":"2.0","params":{"code":"fixture"}}' if method == "POST" else None
@@ -95,8 +95,8 @@ server.serve_forever()
             status, headers, body = request(base)
             data = json.loads(body)
             assert status == 200 and data["path"] == "/cmp_pallets/lookup"
-            assert data["host"] == data["forwarded_host"] == data["sni"] == "fixture-odoo"
-            assert data["origin"] == "https://fixture-odoo"
+            assert data["host"] == data["forwarded_host"] == "fixture-odoo:8443" and data["sni"] == "fixture-odoo"
+            assert data["origin"] == "https://fixture-odoo:8443"
             assert json.loads(data["body"])["params"]["code"] == "fixture"
             cookie = headers.get("Set-Cookie", "").lower()
             assert "secure" in cookie and "httponly" in cookie and "samesite=lax" in cookie
@@ -106,6 +106,13 @@ server.serve_forever()
             assert json.loads(request(base, origin=None)[2])["origin"] is None
             status, _, body = request(base, path="/api/session/prepare", method="GET")
             assert status == 200 and json.loads(body)["path"] == "/web/login?db=cmpslu"
+            second = launch(database="fixture_second", app_url="https://pallets-second.invalid:8444")
+            status, headers, body = request(second, path="/runtime-config.js", method="GET")
+            config = json.loads(body.decode().removeprefix("window.CMP_CONFIG = ").strip().removesuffix(";"))
+            assert config["database"] == "fixture_second" and config["appOrigin"] == "https://pallets-second.invalid:8444"
+            assert headers.get("Cache-Control") == "no-store"
+            status, _, body = request(second, path="/api/session/prepare", method="GET", app_host="pallets-second.invalid:8444", origin="https://pallets-second.invalid:8444")
+            assert status == 200 and json.loads(body)["path"] == "/web/login?db=fixture_second"
             assert request(launch(trust=False))[0] == 502, "Untrusted TLS certificate was accepted"
             assert request(launch(host="wrong-host.invalid"))[0] == 502, "TLS hostname mismatch was accepted"
             print("HTTPS_PROXY_TESTS_OK: trusted TLS/SNI/Host, origin translation, foreign origin rejection, cookie flags, allowlist, database prepare, untrusted certificate and hostname rejection")

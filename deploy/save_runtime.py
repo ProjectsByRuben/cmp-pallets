@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 
-KEYS = ("CMP_ODOO_UPSTREAM", "CMP_ODOO_DB", "CMP_ODOO_HOST")
+KEYS = ("CMP_ODOO_UPSTREAM", "CMP_ODOO_DB", "CMP_ODOO_HOST", "CMP_ODOO_URL", "CMP_APP_URL")
 
 
 def main():
@@ -15,7 +15,7 @@ def main():
     template = '{{range .Config.Env}}{{$parts := split . "="}}{{if or ' + condition + '}}{{println (json .)}}{{end}}{{end}}'
     output = subprocess.check_output(["docker", "inspect", "--format", template, sys.argv[1]], text=True)
     values = dict(json.loads(line).split("=", 1) for line in output.splitlines() if line.strip())
-    if not values.get("CMP_ODOO_UPSTREAM") or not values.get("CMP_ODOO_DB"):
+    if not (values.get("CMP_ODOO_UPSTREAM") or values.get("CMP_ODOO_URL")) or not values.get("CMP_ODOO_DB"):
         raise SystemExit("Cannot preserve the previous Odoo connection settings")
     folder = Path(__file__).resolve().parent.parent / ".deploy-state"
     folder.mkdir(exist_ok=True)

@@ -101,3 +101,13 @@ Origin before canonical backend Origin translation; preserve foreign-origin reje
 CSRF, allowlist and verified TLS/SNI. deploy/test_https_proxy.py uses disposable Docker
 TLS fixtures without Odoo credentials or business writes. up/rollback preserve only
 public connection variables under ignored .deploy-state, together with the old image.
+
+Runtime connection configuration supersedes compiled database and separate upstream/
+TLS-host settings: compose now supplies CMP_APP_URL, CMP_ODOO_URL and CMP_ODOO_DB.
+Only root HTTPS DNS/IPv4 URLs with optional port are supported by the container.
+/runtime-config.js carries public values, no-store, before React. Never compile a
+production database fallback or put credentials there. Reconfiguration recreates the
+container without rebuilding; no change to the current Odoo unless explicitly asked.
+Checkpoint identity is scoped to backend/database on reload. Preserve verified TLS,
+canonical upstream headers and browser-origin allowlist. SHARED_DEPARTMENTS remains
+an existing addon authorization policy; it was not modified by this web change.

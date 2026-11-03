@@ -81,3 +81,55 @@ Si Docker ha retirado la imagen del contenedor aún en ejecución, up.sh se deti
 antes de reemplazarlo. Sólo se acepta CMP_PREVIOUS_IMAGE como recuperación explícita
 con una imagen de la versión anterior reconstruida y verificada; no se omite la
 reserva de recuperación. No utilizar una imagen de otra base o versión desconocida.
+
+## Conexión configurable sólo desde compose (03/11/2026, revisión posterior)
+
+Esta revisión sustituye CMP_ODOO_UPSTREAM/CMP_ODOO_HOST y la base compilada por:
+
+```yaml
+environment:
+  CMP_APP_URL: https://pallets.cmp3.es
+  CMP_ODOO_URL: https://rubenfernandez.cmp3.es
+  CMP_ODOO_DB: cmpslu
+```
+
+CMP_ODOO_URL admite una URL HTTPS raíz de DNS/IPv4, con puerto opcional y sin
+credenciales, rutas, consultas ni fragmentos. El arranque deriva destino, puerto,
+SNI, Host y Origin canónico. CMP_APP_URL configura el origen público permitido de la
+web (y puerto si lo tiene); ya no hay que editar Nginx para otro dominio de la web.
+La conexión actual sigue siendo rubenfernandez.cmp3.es y cmpslu. No se ha conectado
+con el Odoo oficial. El Odoo destino necesita addon compatible instalado y usuarios,
+compañías y operarios configurados; cambiar compose no instala módulos ni crea bases.
+
+El contenedor genera /runtime-config.js con los únicos datos públicos de conexión,
+lo sirve con no-store y lo carga antes de React. La misma imagen sirve para otras
+bases y dominios. No hay base de datos fija en el JavaScript ni ARG de base en Docker.
+Falta de configuración bloquea el acceso antes de enviar credenciales. Al recargar,
+un cambio de Odoo/base descarta identidad y selección de la pestaña anterior; recargar
+sin cambiar entorno conserva el trabajo y su validación habitual.
+
+Después de instalar esta versión una vez, editar los valores y ejecutar desde la web:
+
+```sh
+docker compose -f compose.yaml -p cmp-pallets config --quiet
+docker compose -f compose.yaml -p cmp-pallets run --rm --no-deps web --check
+docker compose -f compose.yaml -p cmp-pallets up -d --force-recreate --no-build --wait
+python3 deploy/check_service.py
+```
+
+No basta docker compose restart: debe recrearse para aplicar el entorno. Cambiar
+configuración no requiere npm run build ni editar src/api.ts. Recargar las pestañas
+tras el cambio. No ejecutar operaciones en la instancia oficial sin el despliegue
+expresamente acordado. El rollback conserva variables antiguas y nuevas; la revisión
+anterior con base compilada utiliza la comprobación --legacy-config únicamente al
+recuperar esa imagen anterior.
+
+Vite genera la misma configuración pública para desarrollo. Acepta CMP_ODOO_URL (o
+CMP_ODOO_TARGET heredado), CMP_ODOO_DB y CMP_APP_URL al arrancar npm run dev; su destino
+por defecto sigue siendo HTTP local en 127.0.0.1:16069. Con un destino HTTPS usa
+verificación TLS y cabeceras canónicas. Ese servidor de desarrollo no es el servicio
+Docker publicado.
+
+La selección de empleados de cuentas compartidas del addon aún usa la política
+SHARED_DEPARTMENTS en Python. Esta revisión parametriza la conexión de la web y no
+modifica esa política de autorización ni los permisos nativos de Odoo.

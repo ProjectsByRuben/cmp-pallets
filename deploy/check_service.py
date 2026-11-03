@@ -15,15 +15,18 @@ from urllib.parse import urlsplit
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://127.0.0.1:4180")
+    parser.add_argument("--legacy-config", action="store_true", help="Only for rollback to the previous compiled-DB image")
     options = parser.parse_args()
     target = urlsplit(options.url)
     assert target.scheme == "http" and target.hostname, "Supply the HTTP upstream URL"
     cookies = {}
+    app_origin = "https://pallets.cmp3.es"
+    app_host = "pallets.cmp3.es"
 
     def request(path, method="GET", forwarded=False, origin=None):
         headers = {}
         if forwarded:
-            headers.update({"Host": "pallets.cmp3.es", "X-Forwarded-Proto": "https"})
+            headers.update({"Host": app_host, "X-Forwarded-Proto": "https"})
             if cookies:
                 headers["Cookie"] = "; ".join(f"{key}={value}" for key, value in cookies.items())
         if origin:
@@ -48,6 +51,17 @@ def main():
         finally:
             connection.close()
 
+    if not options.legacy_config:
+        status, headers, body = request("/runtime-config.js")
+        assert status == 200 and headers.get("Cache-Control") == "no-store", "Runtime config unavailable or cached"
+        prefix = b"window.CMP_CONFIG = "
+        assert body.startswith(prefix), "Invalid runtime config"
+        config = json.loads(body[len(prefix):].strip().removesuffix(b";"))
+        assert re.fullmatch(r"[a-zA-Z0-9_-]+", config["database"]), "Invalid database config"
+        app_origin = config["appOrigin"]
+        public = urlsplit(app_origin)
+        assert public.scheme == "https" and public.hostname
+        app_host = public.netloc
     status, _, body = request("/healthz")
     assert status == 200 and body.strip() == b"ok", "Health endpoint failed"
     status, headers, body = request("/")
@@ -66,11 +80,11 @@ def main():
         if status not in (301, 302, 303, 307, 308):
             break
         redirect = urlsplit(headers["Location"])
-        assert not redirect.netloc or redirect.netloc == "pallets.cmp3.es", "Unexpected session redirect"
+        assert not redirect.netloc or redirect.netloc == app_host, "Unexpected session redirect"
         path = redirect.path + ("?" + redirect.query if redirect.query else "")
     assert status == 200 and cookies, "Anonymous database session could not be prepared"
     for path in ("/api/cmp_pallets/access/bootstrap", "/api/cmp_pallets/lookup", "/api/cmp_pallets/associate", "/api/cmp_pallets/move", "/api/cmp_pallets/create", "/api/cmp_pallets/label", "/api/cmp_pallets/locations"):
-        status, headers, body = request(path, "POST", forwarded=True, origin="https://pallets.cmp3.es")
+        status, headers, body = request(path, "POST", forwarded=True, origin=app_origin)
         data = json.loads(body)
         name = data.get("error", {}).get("data", {}).get("name", "")
         assert status == 200 and name.endswith("SessionExpiredException"), "Anonymous request reached an unexpected response"

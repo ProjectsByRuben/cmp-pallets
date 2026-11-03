@@ -8,4 +8,8 @@ if [ -f .deploy-state/previous-runtime.yaml ]; then
 else
     docker compose -f compose.yaml -p cmp-pallets up -d --no-build --force-recreate --wait web
 fi
-python3 deploy/check_service.py
+if [ -f .deploy-state/previous-runtime.yaml ] && grep -q 'CMP_ODOO_URL:' .deploy-state/previous-runtime.yaml; then
+    python3 deploy/check_service.py
+else
+    python3 deploy/check_service.py --legacy-config
+fi
