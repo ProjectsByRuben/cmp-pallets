@@ -15,4 +15,6 @@
 !dist/vendor/jsqr.js
 !dist/vendor/jsqr-LICENSE.txt
 !deploy/
-!deploy/**
+!deploy/entrypoint.sh
+!deploy/nginx.conf.template
+!deploy/security-headers.conf

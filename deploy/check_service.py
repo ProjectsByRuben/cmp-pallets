@@ -16,17 +16,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://127.0.0.1:4180")
     parser.add_argument("--legacy-config", action="store_true", help="Only for rollback to the previous compiled-DB image")
+    parser.add_argument("--legacy-environment", action="store_true", help="Only for rollback to a runtime-config image predating environment fingerprints")
     options = parser.parse_args()
     target = urlsplit(options.url)
     assert target.scheme == "http" and target.hostname, "Supply the HTTP upstream URL"
     cookies = {}
     app_origin = "https://pallets.cmp3.es"
     app_host = "pallets.cmp3.es"
+    environment = ""
 
     def request(path, method="GET", forwarded=False, origin=None):
         headers = {}
         if forwarded:
             headers.update({"Host": app_host, "X-Forwarded-Proto": "https"})
+            if environment:
+                headers["X-CMP-Environment"] = environment
             if cookies:
                 headers["Cookie"] = "; ".join(f"{key}={value}" for key, value in cookies.items())
         if origin:
@@ -58,6 +62,8 @@ def main():
         assert body.startswith(prefix), "Invalid runtime config"
         config = json.loads(body[len(prefix):].strip().removesuffix(b";"))
         assert re.fullmatch(r"[a-zA-Z0-9_-]+", config["database"]), "Invalid database config"
+        environment = config.get("environment", "")
+        assert (options.legacy_environment and not environment) or re.fullmatch(r"[a-f0-9]{64}", environment), "Invalid environment identity"
         app_origin = config["appOrigin"]
         public = urlsplit(app_origin)
         assert public.scheme == "https" and public.hostname

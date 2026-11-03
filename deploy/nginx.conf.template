@@ -3,6 +3,7 @@ pid /tmp/nginx.pid;
 error_log /dev/stderr warn;
 events { worker_connections 1024; }
 http {
+    map_hash_bucket_size 512;
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
     server_tokens off;
@@ -37,6 +38,10 @@ http {
     map $http_origin $odoo_origin {
         "" "";
         default "${CMP_ODOO_ORIGIN}";
+    }
+    map $http_x_cmp_environment $valid_environment {
+        default 0;
+        "${CMP_ENVIRONMENT}" 1;
     }
     upstream odoo { server ${CMP_ODOO_UPSTREAM}; }
 
@@ -82,6 +87,7 @@ http {
         location = /api/session/prepare {
             if ($secure_app_origin = 0) { return 403; }
             if ($valid_origin = 0) { return 403; }
+            if ($valid_environment = 0) { return 409; }
             if ($request_method != GET) { return 405; }
             add_header Cache-Control no-store always;
             include /opt/cmp/security-headers.conf;
@@ -91,6 +97,7 @@ http {
         location ~ ^/api/(cmp_pallets/access/(bootstrap|unlock|setup_pin|profile|lock)|cmp_pallets/(lookup|associate|move|create|label|locations)|web/session/(authenticate|destroy))$ {
             if ($secure_app_origin = 0) { return 403; }
             if ($valid_origin = 0) { return 403; }
+            if ($valid_environment = 0) { return 409; }
             if ($request_method != POST) { return 405; }
             add_header Cache-Control no-store always;
             include /opt/cmp/security-headers.conf;

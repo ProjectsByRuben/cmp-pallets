@@ -1,11 +1,11 @@
 import { clearTab } from './tabState';
 
-export type RuntimeConfig = { database: string; backend: string; appOrigin: string };
+export type RuntimeConfig = { database: string; backend: string; appOrigin: string; environment: string };
 declare global { interface Window { CMP_CONFIG?: RuntimeConfig } }
 
 export function getRuntimeConfig(): RuntimeConfig {
   const value = window.CMP_CONFIG;
-  if (!value || typeof value.database !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(value.database)) {
+  if (!value || typeof value.environment !== 'string' || !/^[a-f0-9]{64}$/.test(value.environment) || typeof value.database !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(value.database)) {
     throw new Error('No se ha podido cargar la configuración de conexión. Recarga la aplicación.');
   }
   for (const address of [value.backend, value.appOrigin]) {

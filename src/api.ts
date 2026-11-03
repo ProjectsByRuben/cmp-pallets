@@ -86,13 +86,14 @@ export class OdooAccessApi implements AccessApi {
         method: 'POST',
         credentials: 'same-origin',
         cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CMP-Environment': getRuntimeConfig().environment },
         body: JSON.stringify({ jsonrpc: '2.0', method: 'call', id: 1, params }),
         signal: AbortSignal.timeout(20000),
       });
     } catch {
       throw new ApiError('No se puede conectar con Odoo. Comprueba la conexión y vuelve a intentarlo.', 'network');
     }
+    if (response.status === 409) throw new ApiError('La conexión de la aplicación ha cambiado. Recarga la página antes de continuar.', 'network');
     if (!response.ok) {
       throw new ApiError('Odoo no está disponible. Vuelve a intentarlo.', 'network');
     }
@@ -134,11 +135,13 @@ export class OdooAccessApi implements AccessApi {
       try { getRuntimeConfig(); } catch (reason) { throw new ApiError(reason instanceof Error ? reason.message : 'Configuración de conexión no disponible.', 'network'); }
       try {
         const response = await this.fetcher('/api/session/prepare', {
-          credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000),
+          credentials: 'same-origin', cache: 'no-store', headers: { 'X-CMP-Environment': getRuntimeConfig().environment }, signal: AbortSignal.timeout(20000),
         });
+        if (response.status === 409) throw new ApiError('La conexión de la aplicación ha cambiado. Recarga la página antes de continuar.', 'network');
         if (!response.ok) throw new Error('session unavailable');
         this.prepared = true;
-      } catch {
+      } catch (reason) {
+        if (reason instanceof ApiError) throw reason;
         throw new ApiError('No se puede conectar con Odoo. Comprueba la conexión y vuelve a intentarlo.', 'network');
       }
     }

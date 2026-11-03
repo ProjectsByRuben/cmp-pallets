@@ -109,5 +109,12 @@ Only root HTTPS DNS/IPv4 URLs with optional port are supported by the container.
 production database fallback or put credentials there. Reconfiguration recreates the
 container without rebuilding; no change to the current Odoo unless explicitly asked.
 Checkpoint identity is scoped to backend/database on reload. Preserve verified TLS,
-canonical upstream headers and browser-origin allowlist. SHARED_DEPARTMENTS remains
-an existing addon authorization policy; it was not modified by this web change.
+canonical upstream headers and browser-origin allowlist. The addon now stores shared-account scopes in administrator-only res.users fields,
+never a login/department-name mapping in Python.
+
+Security audit 03/11/2026: send X-CMP-Environment from the initially loaded runtime
+configuration on every API request, including session preparation. Nginx rejects
+missing/stale fingerprints with 409 before upstream forwarding. This public fingerprint
+is configuration coherence, never authentication. A stale tab must reload; never update
+its fingerprint automatically or replay writes against a different environment.
+Vite development must supply the same runtime fields. Preserve TLS mock rejection tests.

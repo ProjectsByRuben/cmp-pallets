@@ -416,3 +416,26 @@ fabricación. Área de trabajo de ancho contenido, lector destacado, tarjetas de
 selección/detalle y acciones con jerarquía visual consistente. Rojo corporativo,
 grafito, superficies claras, iconos SVG locales y foco visible; disposición adaptada
 a móvil y escritorio. Los estilos de impresión de la etiqueta se mantienen separados.
+
+
+## Revisión de seguridad del 03/11/2026
+
+Cada petición incluye una huella pública de la combinación Odoo/base/origen web.
+Si se cambia compose mientras una pestaña sigue abierta, el proxy rechaza esa
+pestaña antes de enviar nada al nuevo destino y pide recargar. La huella no es una
+contraseña ni sustituye la sesión, el PIN, CSRF o los permisos nativos.
+La conexión conserva HTTPS con verificación de certificado y nombre del servidor,
+lista cerrada de rutas y validación del origen del navegador. La configuración
+pública no incluye credenciales. App y Odoo deben tener orígenes distintos.
+
+Para cambiar el destino de una imagen que ya incluye esta versión, modificar
+CMP_ODOO_URL y CMP_ODOO_DB en compose.yaml y recrear, no sólo reiniciar:
+`docker compose -f compose.yaml -p cmp-pallets up -d --force-recreate --no-build --wait`.
+Ejecutar después `python3 deploy/check_service.py`. El otro Odoo necesita el addon
+compatible, la base correcta, usuarios/permisos y la configuración de cuentas
+compartidas en Ajustes > Usuarios > CMP Pallets. Cambiar la URL no instala el addon.
+
+Validación: 109 pruebas React, 33 de la demo, compilación TypeScript/Vite y fixtures
+HTTPS con certificado no confiable, nombre incorrecto, origen ajeno y entorno
+obsoleto rechazados. npm audit no informó vulnerabilidades conocidas; no equivale
+al análisis de vulnerabilidades de todas las imágenes o dependencias de Odoo.

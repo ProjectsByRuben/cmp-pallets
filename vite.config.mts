@@ -1,9 +1,13 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const target = process.env.CMP_ODOO_URL || process.env.CMP_ODOO_TARGET || 'http://127.0.0.1:16069';
 const backend = new URL(target);
+const database = process.env.CMP_ODOO_DB || 'cmpslu';
+const appOrigin = process.env.CMP_APP_URL || 'http://127.0.0.1:4184';
+const environment = createHash('sha256').update(`${backend.origin}\n${database}\n${appOrigin}\n`).digest('hex');
 const proxyIdentity = backend.protocol === 'https:' ? { changeOrigin: true, secure: true,
   headers: { Origin: backend.origin, 'X-Forwarded-Host': backend.host, 'X-Forwarded-Proto': 'https' } } : { changeOrigin: false };
 
@@ -15,8 +19,7 @@ export default defineConfig({
       server.middlewares.use('/runtime-config.js', (_request, response) => {
         response.setHeader('Content-Type', 'application/javascript');
         response.setHeader('Cache-Control', 'no-store');
-        response.end('window.CMP_CONFIG = ' + JSON.stringify({ database: process.env.CMP_ODOO_DB || 'cmpslu',
-          backend: backend.origin, appOrigin: process.env.CMP_APP_URL || 'http://127.0.0.1:4184' }) + ';');
+        response.end('window.CMP_CONFIG = ' + JSON.stringify({ database, backend: backend.origin, appOrigin, environment }) + ';');
       });
     },
     generateBundle() {

@@ -21,6 +21,7 @@ def docker(*args):
 def main():
     network = "cmp-proxy-fixture-" + uuid4().hex[:10]
     containers = []
+    environments = {}
     backend_image = os.environ.get("CMP_PROXY_TEST_BACKEND_IMAGE", "doodba-cmp-odoo")
     web_image = os.environ.get("CMP_PROXY_TEST_IMAGE", "cmp-pallets-web:local")
     with tempfile.TemporaryDirectory(prefix="cmp-proxy-fixture-") as temporary:
@@ -67,19 +68,25 @@ server.serve_forever()
                     args += ["-v", f"{folder / 'cert.pem'}:/etc/ssl/certs/ca-certificates.crt:ro"]
                 container = docker(*args, web_image)
                 containers.append(container)
-                address = docker("port", container, "8080/tcp").splitlines()[0]
+                try:
+                    address = docker("port", container, "8080/tcp").splitlines()[0]
+                except (subprocess.CalledProcessError, IndexError) as error:
+                    raise AssertionError("Fixture exited before publishing its port: " + docker("logs", container)) from error
                 url = "http://" + address
                 for attempt in range(40):
                     try:
                         with urlopen(url + "/healthz", timeout=1) as response:
                             if response.status == 200:
+                                with urlopen(url + "/runtime-config.js", timeout=2) as config_response:
+                                    payload = config_response.read().decode().removeprefix("window.CMP_CONFIG = ").strip().removesuffix(";")
+                                    environments[url] = json.loads(payload)["environment"]
                                 return url
                     except (URLError, TimeoutError, ConnectionError):
                         time.sleep(0.25)
                 raise AssertionError("Fixture proxy did not start: " + docker("logs", container))
 
-            def request(base, path="/api/cmp_pallets/lookup", forwarded=True, origin="https://pallets.cmp3.es", method="POST", app_host="pallets.cmp3.es"):
-                headers = {"Content-Type": "application/json"}
+            def request(base, path="/api/cmp_pallets/lookup", forwarded=True, origin="https://pallets.cmp3.es", method="POST", app_host="pallets.cmp3.es", environment=None):
+                headers = {"Content-Type": "application/json", "X-CMP-Environment": environment or environments[base]}
                 if forwarded:
                     headers.update({"Host": app_host, "X-Forwarded-Proto": "https"})
                 if origin is not None:
@@ -100,6 +107,7 @@ server.serve_forever()
             assert json.loads(data["body"])["params"]["code"] == "fixture"
             cookie = headers.get("Set-Cookie", "").lower()
             assert "secure" in cookie and "httponly" in cookie and "samesite=lax" in cookie
+            assert request(base, environment="0" * 64)[0] == 409, "Stale environment request reached backend"
             assert request(base, origin="https://untrusted.invalid")[0] == 403
             assert request(base, forwarded=False)[0] == 403
             assert request(base, path="/api/web/dataset/call_kw")[0] == 404
@@ -113,6 +121,12 @@ server.serve_forever()
             assert headers.get("Cache-Control") == "no-store"
             status, _, body = request(second, path="/api/session/prepare", method="GET", app_host="pallets-second.invalid:8444", origin="https://pallets-second.invalid:8444")
             assert status == 200 and json.loads(body)["path"] == "/web/login?db=fixture_second"
+            assert request(second, app_host="pallets-second.invalid:8444", origin="https://pallets-second.invalid:8444", environment=environments[base])[0] == 409
+            for invalid in ["http://fixture-odoo", "https://user:password@fixture-odoo", "https://fixture-odoo/path", "https://fixture-odoo:99999999999999999999999"]:
+                result = subprocess.run(["docker", "run", "--rm", "-e", "CMP_ODOO_URL=" + invalid,
+                    "-e", "CMP_APP_URL=https://pallets.cmp3.es", "-e", "CMP_ODOO_DB=cmpslu",
+                    "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,mode=1777", web_image, "--check"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                assert result.returncode != 0, "Unsafe Odoo URL accepted"
             assert request(launch(trust=False))[0] == 502, "Untrusted TLS certificate was accepted"
             assert request(launch(host="wrong-host.invalid"))[0] == 502, "TLS hostname mismatch was accepted"
             print("HTTPS_PROXY_TESTS_OK: trusted TLS/SNI/Host, origin translation, foreign origin rejection, cookie flags, allowlist, database prepare, untrusted certificate and hostname rejection")

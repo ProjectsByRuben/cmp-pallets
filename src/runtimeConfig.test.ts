@@ -3,7 +3,7 @@ import { OdooAccessApi } from './api';
 import { getRuntimeConfig, resetChangedEnvironment } from './runtimeConfig';
 
 it('authenticates against the database configured at runtime without recompilation', async () => {
-  window.CMP_CONFIG = { database: 'second_database', backend: 'https://other-odoo.invalid', appOrigin: 'https://pallets.cmp3.es' };
+  window.CMP_CONFIG = { environment: 'a'.repeat(64), database: 'second_database', backend: 'https://other-odoo.invalid', appOrigin: 'https://pallets.cmp3.es' };
   const fetcher = vi.fn().mockResolvedValueOnce(new Response('native login')).mockResolvedValueOnce(new Response(JSON.stringify({ result: { uid: 10 } })));
   await new OdooAccessApi(fetcher).login('synthetic-user', 'synthetic-password');
   expect(JSON.parse(fetcher.mock.calls[1][1].body).params.db).toBe('second_database');
@@ -37,4 +37,12 @@ it('preserves the current tab on reload but clears old identity and work when Od
   window.CMP_CONFIG!.backend = 'https://another-odoo.invalid';
   resetChangedEnvironment();
   expect(sessionStorage.getItem('cmp.pallets.tab.work.v1')).toBeNull();
+});
+
+
+it('reports a stale environment before trusting an operation response', async () => {
+  const fetcher = vi.fn().mockResolvedValue(new Response('stale environment', { status: 409 }));
+  const api = new OdooAccessApi(fetcher);
+  await expect(api.lookup('synthetic-token', 'OF99-00001')).rejects.toThrow('Recarga la página');
+  expect(fetcher.mock.calls[0][1].headers['X-CMP-Environment']).toBe('a'.repeat(64));
 });
