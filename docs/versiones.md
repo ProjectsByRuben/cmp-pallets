@@ -345,3 +345,12 @@ una etiqueta por OF, una página A4 por etiqueta, con el mismo QR del pallet. Ta
 nominal 100 × 60 mm; los textos excepcionalmente largos pueden ampliar la altura para
 no recortar datos. Tras añadir OFs a un pallet existente se abre la reimpresión y
 se indica sustituir las etiquetas anteriores. No se cambia el QR al cambiar contenido.
+
+### Una sola etiqueta y QR por pallet — 03/11/2026
+
+Corrige la división por OF de la entrega anterior. Cada pallet presenta una sola
+etiqueta y un único QR; enumera todas las OFs y sus productos. Cliente, proyecto,
+producto principal y referencia se muestran una vez cuando son comunes; los datos
+diferentes se detallan junto a cada OF para conservar sus correspondencias. No cambia
+la identidad del QR ni crea pallets. Ancho 100 mm, altura mínima 60 mm ampliable
+según el contenido; impresión A4 sin ocultar referencias ni OFs. Sólo cambia la web.

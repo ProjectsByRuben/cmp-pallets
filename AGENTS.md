@@ -91,4 +91,5 @@ pallet, require at least one OF and a location; prefill current OF selection and
 scanning/removing within the modal. Save contents/location/creation in one server
 request, never two independent browser mutations. Stable UUID and draft recovery
 remain mandatory. Full labels retain customer reference plus principal AND OF product;
-several OFs produce several labels sharing the same pallet QR. Reprint on additions.
+one pallet has one label and exactly one QR, containing all selected OFs. Label
+height grows for long contents; never omit OFs, references or products. Reprint on additions.

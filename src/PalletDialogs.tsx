@@ -113,26 +113,41 @@ export function PalletLabelDialog({ api, token, pallet, onClose, onAccessError }
 
   return <div className="modal-backdrop label-backdrop"><section className="scan-modal label-modal" role="dialog" aria-modal="true" aria-labelledby="pallet-label-title" onKeyDown={event => modalKeys(event, onClose)}>
     <div className="modal-heading"><h2 id="pallet-label-title">Etiqueta · {pallet.code}</h2><button className="icon-action" aria-label="Cerrar etiqueta" autoFocus onClick={onClose}>×</button></div>
-    <p className="print-help">Etiqueta de 100 × 60 mm en hoja A4. Imprime al 100 %, sin encabezados ni pies. También puedes guardar como PDF.</p>
+    <p className="print-help">Una etiqueta por pallet, con un único QR. Tamaño base 100 × 60 mm en hoja A4; la altura aumenta según el contenido. Imprime al 100 %, sin encabezados ni pies. También puedes guardar como PDF.</p>
     {error ? <><p className="access-error" role="alert">{error}</p><button className="secondary-action" onClick={() => setAttempt(value => value + 1)}>Reintentar etiqueta</button></> : !label ? <p role="status">Preparando QR…</p> : <>
       <PalletLabelSheet label={label} onReady={() => setReady(true)} onError={() => { setReady(false); setError('No se pudo cargar el QR. Reintenta la etiqueta.'); }}/>
       <div className="label-actions"><button className="primary-action" disabled={!ready} onClick={() => window.print()}>Imprimir etiqueta / Guardar PDF</button>
         <a className="quiet-action" href={'data:image/png;base64,' + label.png_base64} download={`${label.code}-QR.png`}>Descargar QR</a></div>
-      <p className="print-help">Reimprimir conserva el mismo código y no crea otro pallet. Cada OF tiene una etiqueta con el mismo QR del pallet. Si cambia el contenido, reimprime y sustituye las etiquetas anteriores.</p>
+      <p className="print-help">Reimprimir conserva el mismo código y no crea otro pallet. La etiqueta reúne todas las OFs y muestra un único QR del pallet. Si cambia el contenido, reimprime y sustituye las etiquetas anteriores.</p>
     </>}
   </section></div>;
 }
 
 export function PalletLabelSheet({ label, onReady, onError }: { label: PalletLabel; onReady?(): void; onError?(): void }) {
-  return <div className="label-sheet">{(label.contents?.length ? label.contents : [null]).map((row, index, rows) => <article key={row?.of_code ?? 'empty'} className="pallet-label" aria-label={`Etiqueta de ${label.code}${rows.length > 1 ? ` · ${index + 1}/${rows.length}` : ''}`}>
-        <header className="label-heading"><img src={logo} alt="CMP"/><strong>{label.code}</strong></header>
-        <img className="label-qr" src={'data:image/png;base64,' + label.png_base64} alt={`QR del pallet ${label.code}`} onLoad={onReady} onError={onError}/>
-        <div className="label-business"><small>CLIENTE</small><b>{row?.customer || 'Sin dato'}</b>
-          <small>PROYECTO</small><b>{row?.project || 'Sin dato'}</b>
-          <small>PRODUCTO PRINCIPAL</small><strong>{row?.product || 'Sin dato'}</strong><span>{row?.description || ''}</span>
-        </div>
-        <div className="label-reference"><b>{row?.of_code || 'Pallet sin OFs'}</b> · Producto OF: {row?.of_product || 'Sin dato'}
-          <div>Ref. cliente: <b>{row?.reference || 'Sin dato'}</b></div></div>
-        <footer>Contenido al {label.printed_on?.split('-').reverse().join('/') || new Date().toLocaleDateString('es-ES')} · {label.contents?.length || 0} OFs · Etiqueta {index + 1}/{rows.length}</footer>
-      </article>)}</div>;
+  const rows = label.contents ?? [];
+  const values = (key: 'customer' | 'project' | 'product' | 'description' | 'reference') => [...new Set(rows.map(row => row[key] || 'Sin dato'))];
+  const projects = values('project');
+  const references = values('reference');
+  const products = [...new Set(rows.map(row => JSON.stringify([row.product, row.description])))];
+  const manyProducts = products.length > 1;
+  const first = rows[0];
+  return <div className="label-sheet"><article className="pallet-label" aria-label={`Etiqueta de ${label.code}`}>
+    <header className="label-heading"><img src={logo} alt="CMP"/><strong>{label.code}</strong></header>
+    <img className="label-qr" src={'data:image/png;base64,' + label.png_base64} alt={`QR del pallet ${label.code}`} onLoad={onReady} onError={onError}/>
+    <div className="label-business"><small>CLIENTE</small><b>{values('customer').join(' · ') || 'Sin dato'}</b>
+      <small>PROYECTO</small><b>{projects.length > 1 ? 'Varios (ver OFs)' : projects[0] || 'Sin dato'}</b>
+      <small>PRODUCTO PRINCIPAL</small><strong>{manyProducts ? 'Varios (ver OFs)' : first?.product || 'Sin dato'}</strong>
+      {!manyProducts && <span>{first?.description || ''}</span>}
+    </div>
+    <div className="label-reference">
+      {rows.length ? rows.map(row => <div className="label-order" key={row.of_code}>
+        <div><b>{row.of_code}</b> · Producto OF: {row.of_product || 'Sin dato'}</div>
+        {manyProducts && <div>Principal: <b>{row.product || 'Sin dato'}</b> · {row.description}</div>}
+        {projects.length > 1 && <div>Proyecto: <b>{row.project || 'Sin dato'}</b></div>}
+        {references.length > 1 && <div>Ref. cliente: <b>{row.reference || 'Sin dato'}</b></div>}
+      </div>) : <b>Pallet sin OFs</b>}
+      {references.length <= 1 && <div>Ref. cliente: <b>{references[0] || 'Sin dato'}</b></div>}
+    </div>
+    <footer>Contenido al {label.printed_on?.split('-').reverse().join('/') || new Date().toLocaleDateString('es-ES')} · {rows.length} OFs</footer>
+  </article></div>;
 }

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError, type AccessApi, type ScanRecord } from './api';
 import { ScanWorkspace } from './ScanWorkspace';
+import { PalletLabelSheet } from './PalletDialogs';
 
 const location = { id: 3, code: 'TEST-CORTE', name: 'Corte de prueba' };
 const of: ScanRecord = { revision: 'a'.repeat(64), kind: 'production', id: 1, code: 'OF99-00001', title: 'Pieza de prueba', quantity: 10, uom: 'ud.', state_label: 'En proceso', items: [], next_offset: null };
@@ -607,7 +608,7 @@ describe('creation contents and complete labels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Quitar OF ' + production.code }));
     expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
   });
-  it('keeps customer reference and both products on every OF label with the same pallet QR', async () => {
+  it('groups all OFs and customer references on one pallet label with one QR', async () => {
     const api = mockApi();
     const row = { of_code: production.code, customer_id: 30, customer: 'Cliente de prueba', project: 'PROY-01', reference: 'REF-CLIENTE-01', product: 'BB-PRUEBA', description: 'Conjunto de prueba', of_product: 'KIT-PRUEBA', of_description: 'Kit de prueba' };
     api.label.mockResolvedValue({ ok: true, pallet_id: pallet.id, code: pallet.code, qr_payload: 'CMP:PALLET:' + pallet.code, png_base64: 'iVBORw0KGgo=', printed_on: '2026-11-03', contents: [row, { ...row, of_code: 'OF99-00007', reference: 'REF-CLIENTE-02' }] });
@@ -618,10 +619,12 @@ describe('creation contents and complete labels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ver QR / Imprimir etiqueta' }));
     expect(await screen.findByText('REF-CLIENTE-01')).toBeVisible();
     expect(screen.getByText('REF-CLIENTE-02')).toBeVisible();
-    expect(screen.getAllByText('BB-PRUEBA')).toHaveLength(2);
-    expect(screen.getAllByText('Cliente de prueba')).toHaveLength(2);
+    expect(screen.getAllByText('BB-PRUEBA')).toHaveLength(1);
+    expect(screen.getAllByText('Cliente de prueba')).toHaveLength(1);
     const images = screen.getAllByAltText('QR del pallet ' + pallet.code);
-    expect(images).toHaveLength(2); expect(images[0].getAttribute('src')).toBe(images[1].getAttribute('src'));
+    expect(images).toHaveLength(1);
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+    expect(screen.getByRole('dialog')).toHaveTextContent('OF99-00007');
     expect(screen.getByRole('dialog')).toHaveTextContent('KIT-PRUEBA');
     expect(api.createPallet).not.toHaveBeenCalled();
   });
@@ -741,4 +744,14 @@ describe('mandatory placement for unlocated pallets', () => {
     await screen.findByRole('dialog', { name: /Etiqueta/ });
     expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ location_id: location.id }));
   });
+});
+
+
+it('retains each OF project, principal product and reference when they differ on a single label', () => {
+  const row = { of_code: 'OF99-00001', customer_id: 30, customer: 'Cliente de prueba', project: 'PROY-A', reference: 'REF-A', product: 'BB-A', description: 'Conjunto A', of_product: 'KIT-A', of_description: 'Kit A' };
+  const contents = [row, { ...row, of_code: 'OF99-00002', project: 'PROY-B', reference: 'REF-B', product: 'BB-B', description: 'Conjunto B', of_product: 'KIT-B' }];
+  render(<PalletLabelSheet label={{ ok: true, pallet_id: 2, code: 'P26-00001', qr_payload: 'CMP:PALLET:P26-00001', png_base64: 'iVBORw0KGgo=', contents }}/>);
+  expect(screen.getAllByRole('article')).toHaveLength(1);
+  expect(screen.getAllByAltText('QR del pallet P26-00001')).toHaveLength(1);
+  for (const code of ['OF99-00001', 'OF99-00002', 'PROY-A', 'PROY-B', 'REF-A', 'REF-B', 'BB-A', 'BB-B']) expect(screen.getByText(code)).toBeVisible();
 });

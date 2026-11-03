@@ -141,6 +141,7 @@ input[type=password] { letter-spacing: .15em; }
 .label-business strong { font-size:11pt; }
 .label-business span { font-size:6pt; }
 .label-reference { clear:both; font-size:7pt; line-height:1.4; padding-top:1mm; }
+.label-order { break-inside:avoid; margin-bottom:.5mm; }
 .pallet-label footer { border-top:.2mm solid #ccc; margin-top:1mm; padding-top:1mm; font-size:5.5pt; color:#555; }
 .label-actions { display:flex; flex-direction:column; align-items:center; gap:8px; }
 .print-help { color:var(--muted, #475569); font-size:14px; line-height:1.5; }
