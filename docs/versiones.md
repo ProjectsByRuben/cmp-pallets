@@ -366,3 +366,9 @@ los pallets ni la base elegida. La sesión de la web sigue siendo de pallets.cmp
 TLS/origen/Host/cookies/rutas correctas y comprobación anónima de la conexión real en
 un contenedor candidato. Sin uso de credenciales ni operaciones de negocio. El
 rollback conserva la imagen y su configuración pública de conexión anterior.
+
+Activación verificada: contenedor sano, comprobación del servicio correcta y sesión
+anónima cmpslu preparada por el puerto local reconocida por el dominio HTTPS, sin
+usar cuentas reales. La versión de recuperación 917d3a2 se reconstruyó desde su Git
+tras detectar que Docker había retirado la imagen del contenedor original; se
+comprobaron su Nginx y sus assets contra la versión que estaba en ejecución.

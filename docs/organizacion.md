@@ -76,3 +76,8 @@ contenedor anterior en .deploy-state/previous-runtime.yaml (ignorado por Git).
 rollback.sh combina esa configuración con la imagen anterior; así el retorno a una
 imagen que usaba HTTP local no conserva por error el nuevo destino HTTPS. No se
 exportan contraseñas, PIN, cookies, sesiones ni archivos runtime de Odoo.
+
+Si Docker ha retirado la imagen del contenedor aún en ejecución, up.sh se detiene
+antes de reemplazarlo. Sólo se acepta CMP_PREVIOUS_IMAGE como recuperación explícita
+con una imagen de la versión anterior reconstruida y verificada; no se omite la
+reserva de recuperación. No utilizar una imagen de otra base o versión desconocida.
