@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError, type AccessApi, type ScanRecord } from './api';
 import { ScanWorkspace } from './ScanWorkspace';
-import { PalletLabelSheet } from './PalletDialogs';
+import { PalletLabelDialog, PalletLabelSheet } from './PalletDialogs';
 
 const location = { id: 3, code: 'TEST-CORTE', name: 'Corte de prueba' };
 const of: ScanRecord = { revision: 'a'.repeat(64), kind: 'production', id: 1, code: 'OF99-00001', title: 'Pieza de prueba', quantity: 10, uom: 'ud.', state_label: 'En proceso', items: [], next_offset: null };
@@ -761,4 +761,74 @@ it('prints a stable code-only sheet independently of its contents', () => {
   expect(screen.getAllByRole('article')).toHaveLength(2);
   expect(screen.getAllByText('P26-0001')).toHaveLength(2);
   expect(screen.getByLabelText('Hoja A4 para doblar por la mitad')).toBeVisible();
+});
+
+
+describe('optional OF information on labels', () => {
+  const plain = { ok: true as const, pallet_id: pallet.id, code: pallet.code, qr_payload: 'CMP:PALLET:' + pallet.code, png_base64: 'iVBORw0KGgo=' };
+  const info = [{ root: 'OF99-ROOT', customer: 'Cliente etiqueta', reference: 'REF-ETIQUETA' }];
+  function dialog(api = mockApi()) {
+    const denied = vi.fn();
+    render(<PalletLabelDialog api={api} token="synthetic-token" pallet={pallet} onClose={vi.fn()} onAccessError={denied}/>);
+    return denied;
+  }
+  it('starts blank and prints the optional data only after explicitly checking the box', async () => {
+    const api = mockApi(); api.label.mockImplementation(async (_token, _id, includeInfo) => includeInfo ? { ...plain, info } : plain);
+    dialog(api);
+    expect(await screen.findAllByLabelText('Espacio para escribir a mano')).toHaveLength(2);
+    const checkbox = screen.getByRole('checkbox', { name: 'Incluir información de las OFs' });
+    expect(checkbox).not.toBeChecked();
+    expect(api.label).toHaveBeenLastCalledWith('synthetic-token', pallet.id);
+    fireEvent.click(checkbox);
+    expect(await screen.findAllByText('Cliente etiqueta')).toHaveLength(2);
+    expect(screen.getAllByText('OF99-ROOT')).toHaveLength(2);
+    expect(screen.getAllByText('REF-ETIQUETA')).toHaveLength(2);
+    expect(api.label).toHaveBeenLastCalledWith('synthetic-token', pallet.id, true);
+    fireEvent.click(checkbox);
+    expect(await screen.findAllByLabelText('Espacio para escribir a mano')).toHaveLength(2);
+    expect(screen.queryByText('Cliente etiqueta')).not.toBeInTheDocument();
+    expect(api.createPallet).not.toHaveBeenCalled();
+  });
+  it('restores the checkbox on reload and re-reads its data rather than storing it', async () => {
+    const api = mockApi(); api.label.mockResolvedValue({ ...plain, info });
+    const { readWork } = await import('./tabState');
+    const state = { selected: [], pallets: [], targetId: null, destination: null, needsLocation: null, pending: null, record: null, previous: [], creation: null, labelPallet: { id: pallet.id, code: pallet.code, includeInfo: true }, scrollY: 0 };
+    render(<ScanWorkspace api={api} token="synthetic-token" profile={{ employee_id: 20, name: 'Empleado fixture', role: 'operator' }} onAccessError={vi.fn()} onSwitch={vi.fn()} onChangeAccount={vi.fn()} switching={false} initialState={state}/>);
+    expect(await screen.findByRole('checkbox', { name: 'Incluir información de las OFs' })).toBeChecked();
+    await screen.findAllByText('Cliente etiqueta');
+    expect(api.label).toHaveBeenCalledWith('synthetic-token', pallet.id, true);
+    expect(readWork('synthetic-token')?.labelPallet?.includeInfo).toBe(true);
+    expect(sessionStorage.getItem('cmp.pallets.tab.work.v1')).not.toContain('Cliente etiqueta');
+  });
+  it('allows returning to a blank label when optional data is inaccessible without logging out', async () => {
+    const api = mockApi(); api.label.mockImplementation(async (_token, _id, includeInfo) => {
+      if (includeInfo) throw new ApiError('Información de OF sin acceso', 'access');
+      return plain;
+    });
+    const denied = dialog(api);
+    await screen.findAllByLabelText('Espacio para escribir a mano');
+    const checkbox = screen.getByRole('checkbox', { name: 'Incluir información de las OFs' });
+    fireEvent.click(checkbox);
+    expect(await screen.findByRole('alert')).toHaveTextContent('sin acceso');
+    expect(denied).not.toHaveBeenCalled();
+    fireEvent.click(checkbox);
+    await screen.findAllByLabelText('Espacio para escribir a mano');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+  it('blocks clipped information and lets the operator select blank paper instead', async () => {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100);
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(200);
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function(this: HTMLElement) { return this.textContent ? 200 : 0; });
+    const api = mockApi(); api.label.mockImplementation(async (_token, _id, includeInfo) => includeInfo ? { ...plain, info } : plain);
+    dialog(api); await screen.findAllByLabelText('Espacio para escribir a mano');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Incluir información de las OFs' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('no cabe');
+    for (const image of screen.getAllByRole('img')) fireEvent.load(image);
+    expect(screen.getByRole('button', { name: 'Imprimir etiqueta / Guardar PDF' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Incluir información de las OFs' }));
+    await screen.findAllByLabelText('Espacio para escribir a mano');
+    for (const image of screen.getAllByRole('img')) fireEvent.load(image);
+    expect(screen.getByRole('button', { name: 'Imprimir etiqueta / Guardar PDF' })).toBeEnabled();
+  });
 });

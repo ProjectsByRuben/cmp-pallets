@@ -176,3 +176,14 @@ it('distinguishes actual credential rejection from an internal authentication fa
   await expect(api.login('synthetic-account', 'wrong-synthetic-password')).rejects.toEqual(new ApiError('Usuario o contraseña incorrectos.', 'access'));
   await expect(api.login('synthetic-account', 'synthetic-password')).rejects.toEqual(new ApiError('Odoo no ha podido iniciar la sesión. Vuelve a intentarlo.', 'network'));
 });
+
+
+it('requests optional OF label fields explicitly and rejects malformed optional data', async () => {
+  const plain = { ok: true, pallet_id: 4, code: 'P26-0004', qr_payload: 'CMP:PALLET:P26-0004', png_base64: 'iVBORw0KGgo=' };
+  const rich = { ...plain, info: [{ root: 'OF99-ROOT', customer: 'Cliente fixture', reference: 'REF-TEST' }] };
+  const fetcher = vi.fn().mockResolvedValueOnce(ok(rich)).mockResolvedValueOnce(ok({ ...plain, info: [{ root: 42 }] }));
+  const api = new OdooAccessApi(fetcher);
+  await expect(api.label('synthetic-token', 4, true)).resolves.toEqual(rich);
+  expect(JSON.parse(fetcher.mock.calls[0][1].body).params.include_info).toBe(true);
+  await expect(api.label('synthetic-token', 4, true)).rejects.toMatchObject({ kind: 'network' });
+});

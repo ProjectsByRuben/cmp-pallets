@@ -120,3 +120,14 @@ missing/stale fingerprints with 409 before upstream forwarding. This public fing
 is configuration coherence, never authentication. A stale tab must reload; never update
 its fingerprint automatically or replay writes against a different environment.
 Vite development must supply the same runtime fields. Preserve TLS mock rejection tests.
+
+
+Optional information since 16.0.1.15.0: keep empty creation and mixed customers.
+Print-preview checkbox defaults false; only an explicit checked request reads OF
+root/customer/reference via include_info. No project guessing: x_root_mo is an OF.
+Do not store optional text in tab checkpoints; retain only includeInfo and re-read
+through protected label on restoration. Clearing the checkbox immediately disables
+printing and clears prior text; ignore outdated responses. Native ACL denials for
+optional info remain local, allowing blank printing without logging out. Do not
+truncate overflowing text: fit within 19–8 pt and block if it still does not fit.
+Code above, handwriting/info left, smaller QR lower right on both folded A5 faces.

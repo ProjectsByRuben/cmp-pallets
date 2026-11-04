@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ApiError, type AccessApi, type PalletCreated, type PalletCreation, type PalletLabel, type ScanRecord } from './api';
 import { LocationPicker } from './LocationPicker';
 import type { CreationDraft } from './tabState';
@@ -93,40 +93,77 @@ export function CreatePalletDialog({ api, token, destination, selected, onClose,
   </section></div>;
 }
 
-export function PalletLabelDialog({ api, token, pallet, onClose, onAccessError }: Common & { pallet: { id: number; code: string } }) {
+export function PalletLabelDialog({ api, token, pallet, onClose, onAccessError, initialIncludeInfo = false, onInfoChange }: Common & { pallet: { id: number; code: string }; initialIncludeInfo?: boolean; onInfoChange?(value: boolean): void }) {
   const [label, setLabel] = useState<PalletLabel | null>(null);
   const [ready, setReady] = useState(false);
+  const [includeInfo, setIncludeInfo] = useState(initialIncludeInfo);
+  const [infoFits, setInfoFits] = useState(true);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    setLabel(null); setReady(false); setError('');
-    api.label(token, pallet.id).then(result => { if (!cancelled) setLabel(result); }).catch(reason => {
+    setLabel(null); setReady(false); setInfoFits(true); setError('');
+    (includeInfo ? api.label(token, pallet.id, true) : api.label(token, pallet.id)).then(result => { if (!cancelled) setLabel(result); }).catch(reason => {
       if (cancelled) return;
-      if (reason instanceof ApiError && ['session', 'access'].includes(reason.kind)) onAccessError(reason);
+      if (reason instanceof ApiError && (reason.kind === 'session' || (reason.kind === 'access' && !includeInfo))) onAccessError(reason);
       else setError(reason instanceof Error ? reason.message : 'No se pudo obtener la etiqueta.');
     });
     return () => { cancelled = true; };
-  }, [api, token, pallet.id, attempt]);
+  }, [api, token, pallet.id, attempt, includeInfo]);
 
   return <div className="modal-backdrop label-backdrop"><section className="scan-modal label-modal" role="dialog" aria-modal="true" aria-labelledby="pallet-label-title" onKeyDown={event => modalKeys(event, onClose)}>
     <div className="modal-heading"><h2 id="pallet-label-title">Etiqueta · {pallet.code}</h2><button className="icon-action" aria-label="Cerrar etiqueta" autoFocus onClick={onClose}>×</button></div>
-    <p className="print-help">Hoja A4 vertical con dos caras iguales. Dobla por la línea central: cada cara mostrará el código y el mismo QR en grande. Imprime al 100 %, sin encabezados ni pies. También puedes guardar como PDF.</p>
+    <p className="print-help">Hoja A4 vertical con dos caras iguales. Dobla por la línea central: cada cara mostrará el código arriba, espacio para notas a la izquierda y el QR a la derecha. Imprime al 100 %, sin encabezados ni pies. También puedes guardar como PDF.</p>
+    <label className="label-info-option"><input type="checkbox" checked={includeInfo} onChange={event => { setReady(false); setLabel(null); setIncludeInfo(event.target.checked); onInfoChange?.(event.target.checked); }}/>Incluir información de las OFs</label>
+    <p className="print-help">Desmarcada deja el recuadro en blanco para escribir a mano. Activada muestra OF raíz, cliente y referencia del pedido, agrupando datos repetidos.</p>
     {error ? <><p className="access-error" role="alert">{error}</p><button className="secondary-action" onClick={() => setAttempt(value => value + 1)}>Reintentar etiqueta</button></> : !label ? <p role="status">Preparando QR…</p> : <>
-      <PalletLabelSheet label={label} onReady={() => setReady(true)} onError={() => { setReady(false); setError('No se pudo cargar el QR. Reintenta la etiqueta.'); }}/>
-      <div className="label-actions"><button className="primary-action" disabled={!ready} onClick={() => window.print()}>Imprimir etiqueta / Guardar PDF</button>
+      <PalletLabelSheet label={label} onFit={setInfoFits} onReady={() => setReady(true)} onError={() => { setReady(false); setError('No se pudo cargar el QR. Reintenta la etiqueta.'); }}/>
+      {!infoFits && <p className="access-error" role="alert">La información no cabe de forma legible en esta cara A5. Desmarca la casilla para imprimir el espacio en blanco.</p>}
+      {includeInfo && !label.info?.length && <p className="print-help">Este pallet no tiene OFs; el espacio quedará en blanco.</p>}
+      <div className="label-actions"><button className="primary-action" disabled={!ready || !infoFits} onClick={() => window.print()}>Imprimir etiqueta / Guardar PDF</button>
         <a className="quiet-action" href={'data:image/png;base64,' + label.png_base64} download={`${label.code}-QR.png`}>Descargar QR</a></div>
-      <p className="print-help">Las dos caras identifican el mismo pallet. Añadir o quitar OFs y cambiar de ubicación no modifica su QR ni requiere reimprimir.</p>
+      <p className="print-help">Las dos caras identifican el mismo pallet. El QR no cambia al añadir OFs o moverlo. Si imprimes información y cambia el contenido, vuelve a imprimir para actualizar ese texto.</p>
     </>}
   </section></div>;
 }
 
-export function PalletLabelSheet({ label, onReady, onError }: { label: PalletLabel; onReady?(): void; onError?(): void }) {
+export function PalletLabelSheet({ label, onReady, onError, onFit }: { label: PalletLabel; onReady?(): void; onError?(): void; onFit?(fits: boolean): void }) {
   const loaded = useRef(new Set<number>());
-  return <div className="label-sheet" aria-label="Hoja A4 para doblar por la mitad">
+  const sheet = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = sheet.current;
+    if (!element) return;
+    const fit = () => {
+      const boxes = [...element.querySelectorAll<HTMLElement>('.label-info')];
+      if (!boxes.length || !element.clientWidth) { onFit?.(true); return; }
+      let size = 3.2;
+      const fits = () => boxes.every(box => box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1);
+      element.style.setProperty('--label-info-font', String(size));
+      while (!fits() && size > 1.34) {
+        size = Math.max(1.34, size - .12);
+        element.style.setProperty('--label-info-font', String(size));
+      }
+      onFit?.(fits());
+    };
+    fit();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+    observer?.observe(element);
+    window.addEventListener('beforeprint', fit);
+    return () => { observer?.disconnect(); window.removeEventListener('beforeprint', fit); };
+  }, [label, onFit]);
+  return <div ref={sheet} className="label-sheet" aria-label="Hoja A4 para doblar por la mitad">
     {[0, 1].map(side => <article className={'pallet-label' + (side === 0 ? ' label-reversed' : '')} aria-label={`Cara ${side + 1} de ${label.code}`} key={side}>
-      <strong className="label-code">{label.code}</strong>
-      <img className="label-qr" src={'data:image/png;base64,' + label.png_base64} alt={`QR del pallet ${label.code}, cara ${side + 1}`} onLoad={() => { loaded.current.add(side); if (loaded.current.size === 2) onReady?.(); }} onError={onError}/>
+      <strong className="label-code" style={{ fontSize: `${160 / Math.max(label.code.length, 8)}cqw` }}>{label.code}</strong>
+      <div className="label-lower">
+        <div className="label-info" aria-label={label.info?.length ? 'Información de las OFs' : 'Espacio para escribir a mano'}>
+          {label.info?.map((row, index) => <div className="label-info-group" key={index}>
+            <div><b>OF raíz:</b> {row.root || 'Sin dato'}</div>
+            <div><b>Cliente:</b> {row.customer || 'Sin dato'}</div>
+            <div><b>Ref. cliente:</b> {row.reference || 'Sin dato'}</div>
+          </div>)}
+        </div>
+        <img className="label-qr" src={'data:image/png;base64,' + label.png_base64} alt={`QR del pallet ${label.code}, cara ${side + 1}`} onLoad={() => { loaded.current.add(side); if (loaded.current.size === 2) onReady?.(); }} onError={onError}/>
+      </div>
     </article>)}
   </div>;
 }

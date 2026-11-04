@@ -37,7 +37,8 @@ export type MovementResult = { ok: true; moved: number; unchanged: number; locat
 
 export type PalletCreation = { request_id: string; location_id?: number; productions?: { id: number; revision: string }[] };
 export type PalletCreated = { ok: true; pallet_id: number; pallet_code: string };
-export type PalletLabel = { ok: true; pallet_id: number; code: string; qr_payload: string; png_base64: string };
+export type LabelInfo = { root: string; customer: string; reference: string };
+export type PalletLabel = { ok: true; pallet_id: number; code: string; qr_payload: string; png_base64: string; info?: LabelInfo[] };
 
 export class ApiError extends Error {
   constructor(message: string, public kind: 'session' | 'access' | 'network' | 'business') {
@@ -50,7 +51,7 @@ export type LocationPage = { ok: true; items: LocationSummary[]; next_offset: nu
 export interface AccessApi {
   locations(token: string, query?: string, offset?: number): Promise<LocationPage>;
   createPallet(token: string, proposal: PalletCreation): Promise<PalletCreated>;
-  label(token: string, palletId: number): Promise<PalletLabel>;
+  label(token: string, palletId: number, includeInfo?: boolean): Promise<PalletLabel>;
   associate(token: string, proposal: Association): Promise<AssociationResult>;
   move(token: string, proposal: Movement): Promise<MovementResult>;
   bootstrap(): Promise<Bootstrap>;
@@ -233,10 +234,11 @@ export class OdooAccessApi implements AccessApi {
     throw new ApiError('No se ha confirmado la creación. Reintenta la misma petición.', 'network');
   }
 
-  async label(token: string, palletId: number): Promise<PalletLabel> {
-    const result = await this.rpc<PalletLabel>('cmp_pallets/label', { pallet_id: palletId, token, csrf_token: this.csrf });
+  async label(token: string, palletId: number, includeInfo?: boolean): Promise<PalletLabel> {
+    const result = await this.rpc<PalletLabel>('cmp_pallets/label', { pallet_id: palletId, token, csrf_token: this.csrf, ...(includeInfo ? { include_info: true } : {}) });
     if (result?.ok === true && result.pallet_id === palletId && typeof result.code === 'string'
       && /^P\d{2}-\d{4,}$/.test(result.code) && result.qr_payload === 'CMP:PALLET:' + result.code
+      && (includeInfo ? Array.isArray(result.info) && result.info.length <= 1000 && result.info.every(row => row && ['root', 'customer', 'reference'].every(key => typeof row[key as keyof LabelInfo] === 'string' && row[key as keyof LabelInfo].length <= 2000)) : result.info === undefined)
       && typeof result.png_base64 === 'string' && result.png_base64.startsWith('iVBOR')
       && result.png_base64.length < 1000000 && /^[A-Za-z0-9+/=]+$/.test(result.png_base64)) return result;
     throw new ApiError('No se ha podido obtener la etiqueta del pallet.', 'network');

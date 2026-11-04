@@ -8,7 +8,7 @@ export type CreationDraft = { productions?: ScanRecord[]; location: LocationSumm
 export type SavedWork = {
   selected: ScanRecord[]; pallets: ScanRecord[]; targetId: number | null; destination: ScanRecord | null;
   needsLocation: number | null; pending: PendingOperation | null; record: ScanRecord | null; previous: string[];
-  creation: CreationDraft | null; labelPallet: { id: number; code: string } | null; scrollY: number;
+  creation: CreationDraft | null; labelPallet: { id: number; code: string; includeInfo?: boolean } | null; scrollY: number;
 };
 const id = (v: unknown) => Number.isInteger(v) && (v as number) > 0;
 function read(key: string): unknown {
@@ -47,7 +47,7 @@ export function readWork(token: string): SavedWork | null {
     || (s.pending !== null && (!s.pending || !['associate', 'move'].includes(s.pending.kind) || !s.pending.data || typeof s.pending.data.request_id !== 'string'))
     || (s.creation !== null && (!s.creation || (s.creation.proposal !== null && typeof s.creation.proposal?.request_id !== 'string')))
     || (s.creation?.productions !== undefined && (!Array.isArray(s.creation.productions) || s.creation.productions.length > 100 || !s.creation.productions.every(record)))
-    || (s.labelPallet !== null && (!id(s.labelPallet?.id) || typeof s.labelPallet.code !== 'string'))) return null;
+    || (s.labelPallet !== null && (!id(s.labelPallet?.id) || typeof s.labelPallet.code !== 'string' || (s.labelPallet.includeInfo !== undefined && typeof s.labelPallet.includeInfo !== 'boolean')))) return null;
   return s;
 }
 export function saveWork(token: string, state: SavedWork) {

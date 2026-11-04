@@ -129,12 +129,17 @@ input[type=password] { letter-spacing: .15em; }
 .creation-orders li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
 .creation-orders li div { display:grid; gap:4px; min-width:0; overflow-wrap:anywhere; }
 .creation-orders li span { color:var(--muted); font-size:13px; }
-.label-sheet { position:relative; width:100%; max-width:210mm; aspect-ratio:210 / 297; background:white; margin:16px auto; box-shadow:0 2px 12px #17243b16; }
+.label-sheet { container-type:inline-size; position:relative; width:100%; max-width:210mm; aspect-ratio:210 / 297; background:white; margin:16px auto; box-shadow:0 2px 12px #17243b16; }
 .label-sheet::after { content:""; position:absolute; top:50%; left:4%; right:4%; border-top:1px dashed #bbb; }
-.pallet-label { box-sizing:border-box; width:100%; height:50%; padding:4% 0; background:white; color:black; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5%; font-family:Arial,sans-serif; }
+.pallet-label { box-sizing:border-box; width:100%; height:50%; padding:3.8%; background:white; color:black; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; gap:4%; font-family:Arial,sans-serif; }
 .label-reversed { transform:rotate(180deg); }
-.label-code { font-size:clamp(24px, 6vw, 52pt); line-height:1; white-space:nowrap; }
-.pallet-label .label-qr { display:block; width:46.666667%; aspect-ratio:1; object-fit:contain; image-rendering:pixelated; }
+.label-code { display:flex; align-items:center; justify-content:center; height:36%; flex-shrink:0; font-size:20cqw; line-height:1; white-space:nowrap; }
+.label-lower { display:grid; grid-template-columns:minmax(0, 1fr) 30%; align-items:end; gap:4%; flex:1; min-height:0; }
+.label-info { align-self:stretch; border:.2mm solid #aaa; padding:2.5%; overflow:hidden; font-size:calc(var(--label-info-font, 3.2) * 1cqw); line-height:1.35; overflow-wrap:anywhere; }
+.label-info-group + .label-info-group { margin-top:1em; }
+.pallet-label .label-qr { display:block; width:100%; aspect-ratio:1; object-fit:contain; image-rendering:pixelated; }
+.label-info-option { display:flex; align-items:center; gap:10px; padding:12px 0; }
+.label-info-option input { width:20px; height:20px; flex-shrink:0; }
 .label-actions { display:flex; flex-direction:column; align-items:center; gap:8px; }
 .print-help { color:var(--muted, #475569); font-size:14px; line-height:1.5; }
 @page { size:A4 portrait; margin:0; }
@@ -143,8 +148,7 @@ input[type=password] { letter-spacing: .15em; }
   body * { visibility:hidden !important; }
   .label-sheet, .label-sheet * { visibility:visible !important; }
   .label-sheet { width:210mm; height:297mm; max-width:none; margin:0; box-shadow:none; break-inside:avoid; }
-  .pallet-label { height:148.5mm; padding:5mm 0; gap:7mm; }
-  .label-code { font-size:52pt; }
+  .pallet-label { height:148.5mm; padding:8mm; gap:5mm; }
   .label-modal > :not(.label-sheet) { display:none !important; }
   .label-backdrop { position:absolute !important; inset:0 auto auto 0 !important; width:210mm; }
   .label-backdrop, .label-modal { display:block !important; overflow:visible !important; max-height:none !important; padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; background:white !important; }

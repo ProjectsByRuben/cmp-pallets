@@ -467,3 +467,30 @@ sin prefijo. No se modifica el contenido de los QR de OF existentes.
 
 Validación de esta revisión: 110 pruebas React y 33 de demo, compilación TypeScript/Vite,
 fixtures HTTPS y una impresión Chromium verificada de una sola página A4 con ambas caras.
+
+
+## Información opcional y espacio para escribir — 04/11/2026
+
+Cada cara A5 tiene el código grande arriba, un recuadro a la izquierda para escribir
+con bolígrafo y un QR más pequeño abajo a la derecha. Se conservan las dos caras
+iguales, la superior girada y la guía de plegado central en una sola A4.
+
+En la vista previa, tanto después de crear como al reimprimir, «Incluir información
+de las OFs» está desmarcada por defecto. Activarla solicita los datos actuales al
+servidor; desactivarla deja el recuadro realmente vacío. Es una opción de impresión,
+no una modificación del pallet. Se conserva al recargar esa vista, guardando sólo
+el booleano y releyendo los datos con permisos actuales; no se guarda el texto.
+
+Los datos son OF raíz (x_root_mo), cliente (product_customer_id) y referencia del
+pedido (client_order_ref), con fallback a la raíz cuando faltan datos de una hija.
+x_root_mo no es el proyecto del cliente. Los grupos repetidos aparecen una sola vez.
+No se reintroduce la restricción por cliente ni la obligación de crear con OFs.
+
+El texto se ajusta entre aproximadamente 19 y 8 pt. Si aun así no cabe, se avisa y
+se bloquea esa impresión para evitar recortes; siempre se puede elegir el espacio
+vacío. Un permiso insuficiente para la información no cierra la sesión: permite
+volver a la etiqueta vacía. Si se imprime información y cambian las OFs, hay que
+reimprimir ese texto; el QR sigue siendo el mismo.
+
+Validación: 115 pruebas React y 33 demo, TypeScript/Vite, fixtures HTTPS, comprobación
+Chromium del ajuste normal/excesivo/vacío e impresión de una A4 en ambos modos.

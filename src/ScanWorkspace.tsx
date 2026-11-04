@@ -37,7 +37,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   const [manual, setManual] = useState(false);
   const [creating, setCreating] = useState(!!initialState?.creation);
   const [creationDraft, setCreationDraft] = useState<CreationDraft | null>(initialState?.creation ?? null);
-  const [labelPallet, setLabelPallet] = useState<{ id: number; code: string } | null>(initialState?.labelPallet ?? null);
+  const [labelPallet, setLabelPallet] = useState<{ id: number; code: string; includeInfo?: boolean } | null>(initialState?.labelPallet ?? null);
   const [manualCode, setManualCode] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const detail = useRef<HTMLElement>(null);
@@ -322,6 +322,6 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
       setCreating(false); setCreationDraft(null); setSelected([]); setTargetId(result.pallet_id); setLabelPallet({ id: result.pallet_id, code: result.pallet_code });
       void read('CMP:PALLET:' + result.pallet_code, 'new', true);
     }}/>}
-    {labelPallet && <PalletLabelDialog api={api} token={token} pallet={labelPallet} onClose={() => setLabelPallet(null)} onAccessError={onAccessError}/>}
+    {labelPallet && <PalletLabelDialog api={api} token={token} pallet={labelPallet} initialIncludeInfo={labelPallet.includeInfo} onInfoChange={value => setLabelPallet(current => current ? { ...current, includeInfo: value } : null)} onClose={() => setLabelPallet(null)} onAccessError={onAccessError}/>}
   </>;
 }
