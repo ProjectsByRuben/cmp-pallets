@@ -500,3 +500,9 @@ Códigos sin distinción de mayúsculas/minúsculas: entrada manual, lector y pr
 CMP:OF/PALLET/LOC resuelven la referencia exacta a través del lookup protegido.
 Se muestra el código original de Odoo; no se modifica su nombre ni su QR.
 El lector sin sufijo también reconoce pallets y prefijos escritos en minúsculas.
+
+
+QR nuevos sin prefijo (16.0.1.17.0): las etiquetas y descargas de pallets contienen
+sólo su nombre visible, por ejemplo P26-0001. Mantener lectura de QR antiguos con
+CMP:PALLET:, y aceptar ambas respuestas de etiqueta durante la actualización.
+No cambian nombres, secuencia, OFs, ubicaciones ni la información opcional.

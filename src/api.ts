@@ -237,7 +237,7 @@ export class OdooAccessApi implements AccessApi {
   async label(token: string, palletId: number, includeInfo?: boolean): Promise<PalletLabel> {
     const result = await this.rpc<PalletLabel>('cmp_pallets/label', { pallet_id: palletId, token, csrf_token: this.csrf, ...(includeInfo ? { include_info: true } : {}) });
     if (result?.ok === true && result.pallet_id === palletId && typeof result.code === 'string'
-      && /^P\d{2}-\d{4,}$/.test(result.code) && result.qr_payload === 'CMP:PALLET:' + result.code
+      && /^P\d{2}-\d{4,}$/.test(result.code) && (result.qr_payload === result.code || result.qr_payload === 'CMP:PALLET:' + result.code)
       && (includeInfo ? Array.isArray(result.info) && result.info.length <= 1000 && result.info.every(row => row && ['root', 'customer', 'reference'].every(key => typeof row[key as keyof LabelInfo] === 'string' && row[key as keyof LabelInfo].length <= 2000)) : result.info === undefined)
       && typeof result.png_base64 === 'string' && result.png_base64.startsWith('iVBOR')
       && result.png_base64.length < 1000000 && /^[A-Za-z0-9+/=]+$/.test(result.png_base64)) return result;

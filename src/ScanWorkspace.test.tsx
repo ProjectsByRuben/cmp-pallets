@@ -15,7 +15,7 @@ function mockApi() {
     bootstrap: vi.fn(), login: vi.fn(), unlock: vi.fn(), setupPin: vi.fn(), profile: vi.fn(), lock: vi.fn(), logout: vi.fn(),
     locations: vi.fn<AccessApi['locations']>().mockResolvedValue({ ok: true, items: [location], next_offset: null }),
     createPallet: vi.fn<AccessApi['createPallet']>().mockResolvedValue({ ok: true, pallet_id: 2, pallet_code: 'P26-0001' }),
-    label: vi.fn<AccessApi['label']>().mockResolvedValue({ ok: true, pallet_id: 2, code: 'P26-0001', qr_payload: 'CMP:PALLET:P26-0001', png_base64: 'iVBORw0KGgo=' }),
+    label: vi.fn<AccessApi['label']>().mockResolvedValue({ ok: true, pallet_id: 2, code: 'P26-0001', qr_payload: 'P26-0001', png_base64: 'iVBORw0KGgo=' }),
     move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
     associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P26-0001', added: 1 }),
     lookup: vi.fn<AccessApi['lookup']>().mockImplementation(async (_token, code) => {
@@ -757,7 +757,7 @@ describe('mandatory placement for unlocated pallets', () => {
 
 
 it('prints a stable code-only sheet independently of its contents', () => {
-  render(<PalletLabelSheet label={{ ok: true, pallet_id: 2, code: 'P26-0001', qr_payload: 'CMP:PALLET:P26-0001', png_base64: 'iVBORw0KGgo=' }}/>);
+  render(<PalletLabelSheet label={{ ok: true, pallet_id: 2, code: 'P26-0001', qr_payload: 'P26-0001', png_base64: 'iVBORw0KGgo=' }}/>);
   expect(screen.getAllByRole('article')).toHaveLength(2);
   expect(screen.getAllByText('P26-0001')).toHaveLength(2);
   expect(screen.getByLabelText('Hoja A4 para doblar por la mitad')).toBeVisible();
@@ -765,7 +765,7 @@ it('prints a stable code-only sheet independently of its contents', () => {
 
 
 describe('optional OF information on labels', () => {
-  const plain = { ok: true as const, pallet_id: pallet.id, code: pallet.code, qr_payload: 'CMP:PALLET:' + pallet.code, png_base64: 'iVBORw0KGgo=' };
+  const plain = { ok: true as const, pallet_id: pallet.id, code: pallet.code, qr_payload: pallet.code, png_base64: 'iVBORw0KGgo=' };
   const info = [{ root: 'OF99-ROOT', customer: 'Cliente etiqueta', reference: 'REF-ETIQUETA' }];
   function dialog(api = mockApi()) {
     const denied = vi.fn();

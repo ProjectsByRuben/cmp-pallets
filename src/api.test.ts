@@ -94,7 +94,7 @@ it('treats malformed movement results as an unknown outcome eligible for identic
 });
 
 it('protects creation and label requests and rejects a label for a different identity', async () => {
-  const label = { ok: true, pallet_id: 4, code: 'P26-0004', qr_payload: 'CMP:PALLET:P26-0004', png_base64: 'iVBORw0KGgo=' };
+  const label = { ok: true, pallet_id: 4, code: 'P26-0004', qr_payload: 'P26-0004', png_base64: 'iVBORw0KGgo=' };
   const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
     .mockResolvedValueOnce(ok({ ok: true, pallet_id: 4, pallet_code: 'P26-0004' }))
     .mockResolvedValueOnce(ok(label)).mockResolvedValueOnce(ok({ ...label, qr_payload: 'CMP:PALLET:P26-0099' }));
@@ -179,11 +179,18 @@ it('distinguishes actual credential rejection from an internal authentication fa
 
 
 it('requests optional OF label fields explicitly and rejects malformed optional data', async () => {
-  const plain = { ok: true, pallet_id: 4, code: 'P26-0004', qr_payload: 'CMP:PALLET:P26-0004', png_base64: 'iVBORw0KGgo=' };
+  const plain = { ok: true, pallet_id: 4, code: 'P26-0004', qr_payload: 'P26-0004', png_base64: 'iVBORw0KGgo=' };
   const rich = { ...plain, info: [{ root: 'OF99-ROOT', customer: 'Cliente fixture', reference: 'REF-TEST' }] };
   const fetcher = vi.fn().mockResolvedValueOnce(ok(rich)).mockResolvedValueOnce(ok({ ...plain, info: [{ root: 42 }] }));
   const api = new OdooAccessApi(fetcher);
   await expect(api.label('synthetic-token', 4, true)).resolves.toEqual(rich);
   expect(JSON.parse(fetcher.mock.calls[0][1].body).params.include_info).toBe(true);
   await expect(api.label('synthetic-token', 4, true)).rejects.toMatchObject({ kind: 'network' });
+});
+
+
+it('accepts legacy prefixed label images during a rolling upgrade', async () => {
+  const label = { ok: true, pallet_id: 4, code: 'P26-0004', qr_payload: 'CMP:PALLET:P26-0004', png_base64: 'iVBORw0KGgo=' };
+  const api = new OdooAccessApi(vi.fn().mockResolvedValue(ok(label)));
+  await expect(api.label('synthetic-token', 4)).resolves.toEqual(label);
 });
