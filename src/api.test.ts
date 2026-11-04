@@ -68,7 +68,7 @@ describe('Odoo identity API contract', () => {
 
 it('sends an explicit operation with CSRF and leaves the idempotency key unchanged', async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
-    .mockResolvedValue(ok({ ok: true, pallet_code: 'P26-00001', added: 1 }));
+    .mockResolvedValue(ok({ ok: true, pallet_code: 'P26-0001', added: 1 }));
   const api = new OdooAccessApi(fetcher);
   await api.bootstrap();
   const proposal = { request_id: 'synthetic-request', pallet_id: 1, pallet_revision: 'a'.repeat(64), productions: [{ id: 2, revision: 'b'.repeat(64) }] };
@@ -94,10 +94,10 @@ it('treats malformed movement results as an unknown outcome eligible for identic
 });
 
 it('protects creation and label requests and rejects a label for a different identity', async () => {
-  const label = { ok: true, pallet_id: 4, code: 'P26-00004', qr_payload: 'CMP:PALLET:P26-00004', png_base64: 'iVBORw0KGgo=' };
+  const label = { ok: true, pallet_id: 4, code: 'P26-0004', qr_payload: 'CMP:PALLET:P26-0004', png_base64: 'iVBORw0KGgo=' };
   const fetcher = vi.fn().mockResolvedValueOnce(new Response('login')).mockResolvedValueOnce(ok(bootstrap))
-    .mockResolvedValueOnce(ok({ ok: true, pallet_id: 4, pallet_code: 'P26-00004' }))
-    .mockResolvedValueOnce(ok(label)).mockResolvedValueOnce(ok({ ...label, qr_payload: 'CMP:PALLET:P26-00099' }));
+    .mockResolvedValueOnce(ok({ ok: true, pallet_id: 4, pallet_code: 'P26-0004' }))
+    .mockResolvedValueOnce(ok(label)).mockResolvedValueOnce(ok({ ...label, qr_payload: 'CMP:PALLET:P26-0099' }));
   const api = new OdooAccessApi(fetcher); await api.bootstrap();
   const proposal = { request_id: 'synthetic-create', location_id: 3 };
   await expect(api.createPallet('synthetic-token', proposal)).resolves.toMatchObject({ pallet_id: 4 });

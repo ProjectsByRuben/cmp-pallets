@@ -1,5 +1,7 @@
 # CMP Pallets
 
+> Contrato actual: ver «Etiqueta A4 y creación flexible — 04/11/2026». Sustituye las restricciones de cliente y las etiquetas comerciales anteriores.
+
 El proyecto contiene dos entradas independientes: **la aplicación React con acceso
 real a Odoo**, activa en CMP/VPN, y **la demo de lector QR** conservada en `dist/`.
 La demo publicada en Sites no se ha sustituido ni conectado a datos reales.
@@ -439,3 +441,29 @@ Validación: 109 pruebas React, 33 de la demo, compilación TypeScript/Vite y fi
 HTTPS con certificado no confiable, nombre incorrecto, origen ajeno y entorno
 obsoleto rechazados. npm audit no informó vulnerabilidades conocidas; no equivale
 al análisis de vulnerabilidades de todas las imágenes o dependencias de Odoo.
+
+
+## Etiqueta A4 y creación flexible — 04/11/2026
+
+Los códigos son P26-0001, con cuatro cifras como mínimo y primer número libre anual;
+se conservan los números mayores sin truncarlos. La migración del addon convierte
+los existentes y registra el cambio; hay que sustituir sus etiquetas anteriores.
+
+Crear pallet permite empezar vacío y elegir ubicación opcionalmente, o incluir las
+OFs seleccionadas/escaneadas (hasta 100). Con OFs, la ubicación sigue siendo obligatoria:
+se guardan pallet, contenido y ubicación atómicamente. Un pallet vacío sin ubicación
+la pedirá al escanearse después. Se admiten OFs de distintos clientes. Se mantienen
+permisos, compañías, revisiones, confirmación explícita y reintentos sin duplicados.
+
+La etiqueta contiene sólo código y QR grande. Una hoja A4 vertical tiene dos mitades
+A5 iguales y la superior girada 180 grados. Doblar por la guía central; imprimir al
+100 %, sin cabeceras/pies. Son dos copias del mismo QR, no dos pallets. Cambiar OFs o
+ubicación no requiere reimprimir; la asociación ya no abre automáticamente la etiqueta.
+Se puede imprimir al crear y desde la consulta del pallet.
+
+Un QR de OF puede contener CMP:OF:OF26-0138898: el prefijo identifica su tipo. El lector
+escribe todo su contenido; la app acepta también OF26-0138898 y presenta la referencia
+sin prefijo. No se modifica el contenido de los QR de OF existentes.
+
+Validación de esta revisión: 110 pruebas React y 33 de demo, compilación TypeScript/Vite,
+fixtures HTTPS y una impresión Chromium verificada de una sola página A4 con ambas caras.

@@ -7,17 +7,17 @@ import { PalletLabelSheet } from './PalletDialogs';
 
 const location = { id: 3, code: 'TEST-CORTE', name: 'Corte de prueba' };
 const of: ScanRecord = { revision: 'a'.repeat(64), kind: 'production', id: 1, code: 'OF99-00001', title: 'Pieza de prueba', quantity: 10, uom: 'ud.', state_label: 'En proceso', items: [], next_offset: null };
-const pallet: ScanRecord = { revision: 'b'.repeat(64), kind: 'pallet', id: 2, code: 'P26-00001', title: 'Pallet', location, active: true, items: [of], next_offset: null };
+const pallet: ScanRecord = { revision: 'b'.repeat(64), kind: 'pallet', id: 2, code: 'P26-0001', title: 'Pallet', location, active: true, items: [of], next_offset: null };
 const production: ScanRecord = { ...of, items: [pallet] };
 
 function mockApi() {
   return {
     bootstrap: vi.fn(), login: vi.fn(), unlock: vi.fn(), setupPin: vi.fn(), profile: vi.fn(), lock: vi.fn(), logout: vi.fn(),
     locations: vi.fn<AccessApi['locations']>().mockResolvedValue({ ok: true, items: [location], next_offset: null }),
-    createPallet: vi.fn<AccessApi['createPallet']>().mockResolvedValue({ ok: true, pallet_id: 2, pallet_code: 'P26-00001' }),
-    label: vi.fn<AccessApi['label']>().mockResolvedValue({ ok: true, pallet_id: 2, code: 'P26-00001', qr_payload: 'CMP:PALLET:P26-00001', png_base64: 'iVBORw0KGgo=' }),
+    createPallet: vi.fn<AccessApi['createPallet']>().mockResolvedValue({ ok: true, pallet_id: 2, pallet_code: 'P26-0001' }),
+    label: vi.fn<AccessApi['label']>().mockResolvedValue({ ok: true, pallet_id: 2, code: 'P26-0001', qr_payload: 'CMP:PALLET:P26-0001', png_base64: 'iVBORw0KGgo=' }),
     move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
-    associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P26-00001', added: 1 }),
+    associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P26-0001', added: 1 }),
     lookup: vi.fn<AccessApi['lookup']>().mockImplementation(async (_token, code) => {
       const record = [production, pallet].find(item => code === item.code || code.endsWith(':' + item.code));
       return record ? { ok: true, record } : { ok: false, error: 'QR no encontrado o sin acceso.' };
@@ -215,10 +215,10 @@ describe('live scan consultation', () => {
     open(api);
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Código de OF, pallet o ubicación'), production.code + '{Enter}');
-    api.lookup.mockResolvedValueOnce({ ok: true, record: { ...production, items: [pallet, { ...pallet, id: 4, code: 'P26-00002' }] } });
+    api.lookup.mockResolvedValueOnce({ ok: true, record: { ...production, items: [pallet, { ...pallet, id: 4, code: 'P26-0002' }] } });
     await user.click(await screen.findByRole('button', { name: 'Ver más' }));
-    expect(await screen.findByRole('button', { name: /P26-00002/ })).toBeVisible();
-    expect(screen.getAllByRole('button', { name: /P26-00001/ })).toHaveLength(1);
+    expect(await screen.findByRole('button', { name: /P26-0002/ })).toBeVisible();
+    expect(screen.getAllByRole('button', { name: /P26-0001/ })).toHaveLength(1);
     expect(api.lookup).toHaveBeenLastCalledWith('synthetic-token', 'CMP:OF:' + production.code, 50);
   });
 });
@@ -297,7 +297,7 @@ describe('explicit OF association', () => {
 
 describe('flexible selection and group movement', () => {
   const secondOrder: ScanRecord = { ...production, id: 5, code: 'OF99-00002', revision: 'd'.repeat(64) };
-  const secondPallet: ScanRecord = { ...pallet, id: 4, code: 'P26-00002', revision: 'c'.repeat(64) };
+  const secondPallet: ScanRecord = { ...pallet, id: 4, code: 'P26-0002', revision: 'c'.repeat(64) };
   const destination: ScanRecord = { kind: 'location', id: 6, code: 'TEST-DESTINO', title: 'Destino de prueba', active: true, items: [], next_offset: null };
 
   function flexibleApi() {
@@ -319,7 +319,7 @@ describe('flexible selection and group movement', () => {
 
   it('opens any of three selected pallets, OF or location without altering the operation target or group', async () => {
     const api = flexibleApi();
-    const thirdPallet: ScanRecord = { ...pallet, id: 7, code: 'P26-00003' };
+    const thirdPallet: ScanRecord = { ...pallet, id: 7, code: 'P26-0003' };
     const lookup = api.lookup.getMockImplementation()!;
     api.lookup.mockImplementation(async (token, code, offset) => code.endsWith(thirdPallet.code)
       ? { ok: true, record: thirdPallet } : lookup(token, code, offset));
@@ -516,11 +516,13 @@ describe('pallet creation and printing entry points', () => {
     await user.type(screen.getByLabelText('Código de OF, pallet o ubicación'), pallet.code + '{Enter}');
     await screen.findByRole('heading', { name: pallet.code });
     await user.click(screen.getByRole('button', { name: 'Ver QR / Imprimir etiqueta' }));
-    expect(await screen.findByAltText('QR del pallet ' + pallet.code)).toBeVisible();
+    expect(await screen.findByAltText('QR del pallet ' + pallet.code + ', cara 1')).toBeVisible();
     const print = vi.spyOn(window, 'print').mockImplementation(() => {});
     const button = screen.getByRole('button', { name: 'Imprimir etiqueta / Guardar PDF' });
     expect(button).toBeDisabled();
-    fireEvent.load(screen.getByAltText('QR del pallet ' + pallet.code));
+    fireEvent.load(screen.getByAltText('QR del pallet ' + pallet.code + ', cara 1'));
+    expect(button).toBeDisabled();
+    fireEvent.load(screen.getByAltText('QR del pallet ' + pallet.code + ', cara 2'));
     await user.click(button);
     expect(print).toHaveBeenCalledOnce();
     expect(api.createPallet).not.toHaveBeenCalled();
@@ -596,43 +598,39 @@ describe('creation contents and complete labels', () => {
     await screen.findByRole('dialog', { name: /Etiqueta/ });
     expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ productions: [{ id: second.id, revision: second.revision }] }));
   });
-  it('allows correcting the selection when Odoo rejects mixed customers', async () => {
+  it('allows correcting the selection after a business rejection', async () => {
     const api = mockApi();
-    api.createPallet.mockRejectedValueOnce(new ApiError('Un pallet no puede contener OFs de distintos clientes.', 'business'));
+    api.createPallet.mockRejectedValueOnce(new ApiError('Las OFs han cambiado. Vuelve a escanearlas.', 'business'));
     open(api); fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
     await scanInDialog(production.code);
     fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
     fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('distintos clientes');
+    expect(await screen.findByRole('alert')).toHaveTextContent('han cambiado');
     expect(screen.getByRole('button', { name: 'Quitar OF ' + production.code })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Quitar OF ' + production.code }));
-    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeEnabled();
   });
-  it('groups all OFs and customer references on one pallet label with one QR', async () => {
+  it('shows two matching QR faces with code only on one folded A4', async () => {
     const api = mockApi();
-    const row = { of_code: production.code, customer_id: 30, customer: 'Cliente de prueba', project: 'PROY-01', reference: 'REF-CLIENTE-01', product: 'BB-PRUEBA', description: 'Conjunto de prueba', of_product: 'KIT-PRUEBA', of_description: 'Kit de prueba' };
-    api.label.mockResolvedValue({ ok: true, pallet_id: pallet.id, code: pallet.code, qr_payload: 'CMP:PALLET:' + pallet.code, png_base64: 'iVBORw0KGgo=', printed_on: '2026-11-03', contents: [row, { ...row, of_code: 'OF99-00007', reference: 'REF-CLIENTE-02' }] });
     open(api);
     const field = screen.getByLabelText('Código de OF, pallet o ubicación');
     fireEvent.change(field, { target: { value: pallet.code } }); fireEvent.submit(field.closest('form')!);
     await screen.findByRole('heading', { name: pallet.code });
     fireEvent.click(screen.getByRole('button', { name: 'Ver QR / Imprimir etiqueta' }));
-    expect(await screen.findByText('REF-CLIENTE-01')).toBeVisible();
-    expect(screen.getByText('REF-CLIENTE-02')).toBeVisible();
-    expect(screen.getAllByText('BB-PRUEBA')).toHaveLength(1);
-    expect(screen.getAllByText('Cliente de prueba')).toHaveLength(1);
-    const images = screen.getAllByAltText('QR del pallet ' + pallet.code);
-    expect(images).toHaveLength(1);
-    expect(screen.getAllByRole('article')).toHaveLength(1);
-    expect(screen.getByRole('dialog')).toHaveTextContent('OF99-00007');
-    expect(screen.getByRole('dialog')).toHaveTextContent('KIT-PRUEBA');
+    const first = await screen.findByAltText('QR del pallet ' + pallet.code + ', cara 1');
+    const second = screen.getByAltText('QR del pallet ' + pallet.code + ', cara 2');
+    expect(first).toHaveAttribute('src', second.getAttribute('src'));
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(screen.getAllByRole('article')[0]).toHaveClass('label-reversed');
+    expect(screen.getByRole('dialog')).not.toHaveTextContent(production.code);
+    expect(screen.getByRole('dialog')).not.toHaveTextContent('CLIENTE');
     expect(api.createPallet).not.toHaveBeenCalled();
   });
 });
 
 describe('mandatory placement for unlocated pallets', () => {
   const empty: ScanRecord = { ...pallet, location: null, items: [] };
-  const another: ScanRecord = { ...pallet, id: 40, code: 'P26-00040' };
+  const another: ScanRecord = { ...pallet, id: 40, code: 'P26-0040' };
   const secondOrder: ScanRecord = { ...production, id: 50, code: 'OF99-00050' };
   const dest: ScanRecord = { kind: 'location', id: location.id, code: location.code, title: location.name, active: true, items: [], next_offset: null };
   function fixture() {
@@ -701,19 +699,30 @@ describe('mandatory placement for unlocated pallets', () => {
     expect(await screen.findByRole('heading', { name: production.code })).toBeVisible();
     expect(api.move).not.toHaveBeenCalled(); expect(api.associate).not.toHaveBeenCalled();
   });
-  it('requires at least one OF and a location before allowing creation', async () => {
+  it('allows empty creation but requires location when OFs are included', async () => {
     const api = fixture(); open(api);
     fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
-    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
-    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
-    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeEnabled();
     const field = screen.getByLabelText('Escanear OF o ubicación');
     fireEvent.change(field, { target: { value: production.code } }); fireEvent.submit(field.closest('form')!);
     await screen.findByRole('button', { name: 'Quitar OF ' + production.code });
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir ubicación ' + location.code }));
     expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Quitar ubicación' }));
     expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar OF ' + production.code }));
+    expect(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' })).toBeEnabled();
     expect(api.createPallet).not.toHaveBeenCalled();
+  });
+  it('creates an empty unlocated pallet from zero with one explicit request', async () => {
+    const api = fixture(); open(api);
+    fireEvent.click(screen.getByRole('button', { name: /Crear pallet/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear pallet y ver etiqueta' }));
+    await screen.findByRole('dialog', { name: /Etiqueta/ });
+    expect(api.createPallet).toHaveBeenCalledWith('synthetic-token', expect.objectContaining({ productions: [] }));
+    expect(api.createPallet.mock.calls[0][1]).not.toHaveProperty('location_id');
+    expect(api.associate).not.toHaveBeenCalled();
   });
   it.each(['{Enter}', '{Tab}'])('focuses the creation reader immediately and accepts a scan ending with %s', async suffix => {
     const api = fixture(); open(api);
@@ -747,11 +756,9 @@ describe('mandatory placement for unlocated pallets', () => {
 });
 
 
-it('retains each OF project, principal product and reference when they differ on a single label', () => {
-  const row = { of_code: 'OF99-00001', customer_id: 30, customer: 'Cliente de prueba', project: 'PROY-A', reference: 'REF-A', product: 'BB-A', description: 'Conjunto A', of_product: 'KIT-A', of_description: 'Kit A' };
-  const contents = [row, { ...row, of_code: 'OF99-00002', project: 'PROY-B', reference: 'REF-B', product: 'BB-B', description: 'Conjunto B', of_product: 'KIT-B' }];
-  render(<PalletLabelSheet label={{ ok: true, pallet_id: 2, code: 'P26-00001', qr_payload: 'CMP:PALLET:P26-00001', png_base64: 'iVBORw0KGgo=', contents }}/>);
-  expect(screen.getAllByRole('article')).toHaveLength(1);
-  expect(screen.getAllByAltText('QR del pallet P26-00001')).toHaveLength(1);
-  for (const code of ['OF99-00001', 'OF99-00002', 'PROY-A', 'PROY-B', 'REF-A', 'REF-B', 'BB-A', 'BB-B']) expect(screen.getByText(code)).toBeVisible();
+it('prints a stable code-only sheet independently of its contents', () => {
+  render(<PalletLabelSheet label={{ ok: true, pallet_id: 2, code: 'P26-0001', qr_payload: 'CMP:PALLET:P26-0001', png_base64: 'iVBORw0KGgo=' }}/>);
+  expect(screen.getAllByRole('article')).toHaveLength(2);
+  expect(screen.getAllByText('P26-0001')).toHaveLength(2);
+  expect(screen.getByLabelText('Hoja A4 para doblar por la mitad')).toBeVisible();
 });

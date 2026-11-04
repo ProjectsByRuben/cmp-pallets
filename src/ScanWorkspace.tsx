@@ -48,7 +48,7 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
   const [collector] = useState(() => createHidCollector({
     onRead: code => latest.current.read(code),
     onPartial: setPartial,
-    isKnown: code => !inFlight.current && (/^OF\d{2}-\d+$/i.test(code) || /^P(?:\d{2}-\d{5,}|\d{9,})$/.test(code) || /^CMP:(OF|PALLET|LOC):[^\r\n]+$/.test(code)),
+    isKnown: code => !inFlight.current && (/^OF\d{2}-\d+$/i.test(code) || /^P(?:\d{2}-\d{4,}|\d{9,})$/.test(code) || /^CMP:(OF|PALLET|LOC):[^\r\n]+$/.test(code)),
   }));
 
   const snapshot = (): SavedWork => ({ selected, pallets, targetId, destination, needsLocation, pending, record, previous,
@@ -204,9 +204,8 @@ export function ScanWorkspace({ api, token, profile, onAccessError, onSwitch, on
       }
       home();
       const placementNotice = needsLocation && destination ? ` Ubicación ${destination.code} confirmada.` : '';
-      if ('pallet_code' in result && result.added > 0 && proposal.kind === 'associate') setLabelPallet({ id: proposal.data.pallet_id, code: result.pallet_code });
       setNotice(('pallet_code' in result
-        ? `Asociación confirmada en ${result.pallet_code}: ${result.added} OFs añadidas. Reimprime y sustituye la etiqueta anterior.`
+        ? `Asociación confirmada en ${result.pallet_code}: ${result.added} OFs añadidas.`
         : `Traslado confirmado a ${result.location_code}: ${result.moved} pallets movidos; ${result.unchanged} ya estaban allí.`) + placementNotice);
     } catch (reason) {
       if (current !== version.current) return;

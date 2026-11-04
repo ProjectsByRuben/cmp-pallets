@@ -129,33 +129,27 @@ input[type=password] { letter-spacing: .15em; }
 .creation-orders li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
 .creation-orders li div { display:grid; gap:4px; min-width:0; overflow-wrap:anywhere; }
 .creation-orders li span { color:var(--muted); font-size:13px; }
-.label-sheet { overflow-x:auto; }
-.pallet-label { box-sizing:border-box; width:100mm; min-height:60mm; border:.2mm dashed #64748b; padding:3mm 4mm; background:white; color:#000; margin:16px auto; font:7pt/1.25 Arial,sans-serif; overflow-wrap:anywhere; }
-.label-heading { display:flex; justify-content:space-between; align-items:center; border-bottom:1mm solid #e80012; margin:-3mm -4mm 2mm; padding:2mm 4mm; background:#24282d; color:white; }
-.label-heading img { width:18mm; height:auto; }
-.label-heading strong { font-size:18pt; line-height:1; }
-.pallet-label .label-qr { float:right; width:29mm; height:29mm; image-rendering:pixelated; margin:0 -1mm 1mm 2mm; }
-.label-business { display:flex; flex-direction:column; gap:.5mm; min-height:29mm; }
-.label-business small { color:#555; font-size:5.5pt; margin-top:.5mm; }
-.label-business b { font-size:9pt; }
-.label-business strong { font-size:11pt; }
-.label-business span { font-size:6pt; }
-.label-reference { clear:both; font-size:7pt; line-height:1.4; padding-top:1mm; }
-.label-order { break-inside:avoid; margin-bottom:.5mm; }
-.pallet-label footer { border-top:.2mm solid #ccc; margin-top:1mm; padding-top:1mm; font-size:5.5pt; color:#555; }
+.label-sheet { position:relative; width:100%; max-width:210mm; aspect-ratio:210 / 297; background:white; margin:16px auto; box-shadow:0 2px 12px #17243b16; }
+.label-sheet::after { content:""; position:absolute; top:50%; left:4%; right:4%; border-top:1px dashed #bbb; }
+.pallet-label { box-sizing:border-box; width:100%; height:50%; padding:4% 0; background:white; color:black; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5%; font-family:Arial,sans-serif; }
+.label-reversed { transform:rotate(180deg); }
+.label-code { font-size:clamp(24px, 6vw, 52pt); line-height:1; white-space:nowrap; }
+.pallet-label .label-qr { display:block; width:46.666667%; aspect-ratio:1; object-fit:contain; image-rendering:pixelated; }
 .label-actions { display:flex; flex-direction:column; align-items:center; gap:8px; }
 .print-help { color:var(--muted, #475569); font-size:14px; line-height:1.5; }
-@page { size:A4 portrait; margin:10mm; }
+@page { size:A4 portrait; margin:0; }
 @media print {
-  body { background:white !important; margin:0 !important; }
+  html, body, #root { margin:0 !important; padding:0 !important; background:white !important; }
   body * { visibility:hidden !important; }
-  .pallet-label, .pallet-label * { visibility:visible !important; }
-  .pallet-label { margin:0; width:100mm; min-height:60mm; max-width:none; break-inside:avoid; break-after:page; print-color-adjust:exact; }
-  .pallet-label:last-child { break-after:auto; }
-  .label-sheet { overflow:visible; }
+  .label-sheet, .label-sheet * { visibility:visible !important; }
+  .label-sheet { width:210mm; height:297mm; max-width:none; margin:0; box-shadow:none; break-inside:avoid; }
+  .pallet-label { height:148.5mm; padding:5mm 0; gap:7mm; }
+  .label-code { font-size:52pt; }
   .label-modal > :not(.label-sheet) { display:none !important; }
-  .label-backdrop, .label-modal { position:static !important; display:block !important; overflow:visible !important; max-height:none !important; padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; background:white !important; }
-  .scan-workspace { display:none !important; }
+  .label-backdrop { position:absolute !important; inset:0 auto auto 0 !important; width:210mm; }
+  .label-backdrop, .label-modal { display:block !important; overflow:visible !important; max-height:none !important; padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; background:white !important; }
+  .label-modal { position:static !important; width:210mm; max-width:none; }
+  .scan-workspace, .access-header, .access-footer { display:none !important; }
 }
 
 

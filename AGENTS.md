@@ -65,7 +65,7 @@ freeze its modal after any unknown outcome, allowing only the same request retry
 Never print an invented/preview identifier. Creation opens its real label, preserves
 selected OFs and never associates implicitly. Reprint only from a readable active
 pallet and use the authenticated label endpoint. QR payload is CMP:PALLET:<code>.
-Printing currently targets A4 with a 100 × 60 mm cut-out label, at Rubén's request;
+Printing targets one full portrait A4, two equal A5 faces with the upper rotated 180 degrees;
 use browser printing/PDF and QR PNG download. No direct printer integration or claim
 of physical print success. Do not expose generic Odoo report/RPC routes to get images.
 
@@ -86,13 +86,15 @@ retries, never auto-submitted; creation drafts follow the same rule. Logout, ope
 switch, invalid identity and account changes clear prior state. Reload never issues a
 new operator token to extend its lifetime. PIN screen restores employee but no digits.
 
-Creation since 03/11/2026 supersedes the former empty web creation: retain Create
-pallet, require at least one OF and a location; prefill current OF selection and allow
-scanning/removing within the modal. Save contents/location/creation in one server
-request, never two independent browser mutations. Stable UUID and draft recovery
-remain mandatory. Full labels retain customer reference plus principal AND OF product;
-one pallet has one label and exactly one QR, containing all selected OFs. Label
-height grows for long contents; never omit OFs, references or products. Reprint on additions.
+Creation and printing since 04/11/2026 supersede the commercial-label workflow:
+allow empty pallets with optional location and creation with selected OFs (0–100).
+A nonempty creation still requires location and saves everything atomically. Different
+customers are allowed. Label data is only identity/QR, no commercial reads. Print two
+copies of the same QR and code on one portrait A4, upper half rotated 180 degrees,
+with a central fold guide. Wait for both images before enabling print. Contents and
+location changes do not require reprinting or automatically open the label dialog.
+Codes use P26-0001 (minimum four digits); longer numbers are never truncated.
+Preserve stable UUID, revision, native ACL, company and recovery protections.
 
 HTTPS backend since 03/11/2026: published Docker web targets
 rubenfernandez.cmp3.es:443 with CMP_ODOO_HOST=rubenfernandez.cmp3.es and DB cmpslu.
