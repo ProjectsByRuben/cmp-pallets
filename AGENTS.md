@@ -131,3 +131,9 @@ printing and clears prior text; ignore outdated responses. Native ACL denials fo
 optional info remain local, allowing blank printing without logging out. Do not
 truncate overflowing text: fit within 19–8 pt and block if it still does not fit.
 Code above, handwriting/info left, smaller QR lower right on both folded A5 faces.
+
+
+Códigos sin distinción de mayúsculas/minúsculas: entrada manual, lector y prefijos
+CMP:OF/PALLET/LOC resuelven la referencia exacta a través del lookup protegido.
+Se muestra el código original de Odoo; no se modifica su nombre ni su QR.
+El lector sin sufijo también reconoce pallets y prefijos escritos en minúsculas.

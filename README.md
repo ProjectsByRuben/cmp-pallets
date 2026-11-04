@@ -494,3 +494,9 @@ reimprimir ese texto; el QR sigue siendo el mismo.
 
 Validación: 115 pruebas React y 33 demo, TypeScript/Vite, fixtures HTTPS, comprobación
 Chromium del ajuste normal/excesivo/vacío e impresión de una A4 en ambos modos.
+
+
+Códigos sin distinción de mayúsculas/minúsculas: entrada manual, lector y prefijos
+CMP:OF/PALLET/LOC resuelven la referencia exacta a través del lookup protegido.
+Se muestra el código original de Odoo; no se modifica su nombre ni su QR.
+El lector sin sufijo también reconoce pallets y prefijos escritos en minúsculas.

@@ -19,7 +19,7 @@ function mockApi() {
     move: vi.fn<AccessApi['move']>().mockResolvedValue({ ok: true, moved: 1, unchanged: 0, location_code: 'TEST-DESTINO' }),
     associate: vi.fn<AccessApi['associate']>().mockResolvedValue({ ok: true, pallet_code: 'P26-0001', added: 1 }),
     lookup: vi.fn<AccessApi['lookup']>().mockImplementation(async (_token, code) => {
-      const record = [production, pallet].find(item => code === item.code || code.endsWith(':' + item.code));
+      const record = [production, pallet].find(item => code.toUpperCase() === item.code.toUpperCase() || code.toUpperCase().endsWith(':' + item.code.toUpperCase()));
       return record ? { ok: true, record } : { ok: false, error: 'QR no encontrado o sin acceso.' };
     }),
   } satisfies AccessApi;
@@ -831,4 +831,24 @@ describe('optional OF information on labels', () => {
     for (const image of screen.getAllByRole('img')) fireEvent.load(image);
     expect(screen.getByRole('button', { name: 'Imprimir etiqueta / Guardar PDF' })).toBeEnabled();
   });
+});
+
+
+it.each(['of99-00001', 'p26-0001', 'cmp:of:of99-00001', 'cMp:PaLlEt:p26-0001'])('reads lowercase or mixed-case %s from manual entry and displays the canonical code', async code => {
+  const { api } = open();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: /Escribir/ }));
+  await user.type(screen.getByLabelText('OF, pallet o ubicación'), code);
+  await user.click(screen.getByRole('button', { name: 'Consultar' }));
+  const expected = code.toLowerCase().includes('p26') ? pallet.code : production.code;
+  expect(await screen.findByRole('heading', { name: expected })).toBeVisible();
+  expect(api.lookup).toHaveBeenCalledWith('synthetic-token', code, 0);
+});
+
+it.each(['p26-0001', 'cmp:pallet:p26-0001'])('recognizes lowercase %s with the reader idle fallback', async code => {
+  open();
+  const field = screen.getByLabelText('Código de OF, pallet o ubicación');
+  fireEvent.change(field, { target: { value: code } });
+  expect(await screen.findByRole('heading', { name: pallet.code }, { timeout: 2000 })).toBeVisible();
+  expect(field).toHaveValue('');
 });
