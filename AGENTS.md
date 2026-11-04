@@ -148,4 +148,12 @@ Since backend 16.0.1.26.0, current pallet names use P26.0001 with a literal dot.
 API validation and idle HID recognition accept dot and legacy hyphen formats for
 rollout compatibility. Display and print the server's actual code; never rewrite
 names/QRs client-side or map an old label to another identity. Deploy this compatible
-web before migrating the addon. Number allocation/reuse is a separate decision.
+web before migrating the addon.
+
+Backend 16.0.1.27.0 implements Rubén's superseding decision: deleted numbers are
+never reused, even after deleting every pallet. Native annual nextval allows gaps;
+the web always displays the server code and must never fill holes or reset numbers.
+The separately authorized one-time local test-history cleanup starts at P26.0001
+and revokes Pallets profiles to prevent stale checkpoints replaying cleared journals.
+Users must reload and identify again; OFs and locations are preserved. This is not
+a reusable application reset flow. No frontend rebuild is needed for this policy.
