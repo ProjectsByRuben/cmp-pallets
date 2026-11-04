@@ -116,6 +116,16 @@ describe('live scan consultation', () => {
     expect(api.lookup).toHaveBeenCalledTimes(2);
   });
 
+  it('recognizes a plain dot-separated pallet through the idle reader', async () => {
+    const api = mockApi();
+    const dotted = { ...pallet, code: 'P26.0001' };
+    api.lookup.mockResolvedValue({ ok: true, record: dotted });
+    open(api);
+    fireEvent.change(screen.getByLabelText('Código de OF, pallet o ubicación'), { target: { value: 'p26.0001' } });
+    expect(await screen.findByRole('heading', { name: dotted.code }, { timeout: 2000 })).toBeVisible();
+    expect(api.lookup).toHaveBeenCalledWith('synthetic-token', 'p26.0001', 0);
+  });
+
   it('opens a related pallet, reloads Back from Odoo and resets with Home', async () => {
     const { api } = open();
     const user = userEvent.setup();

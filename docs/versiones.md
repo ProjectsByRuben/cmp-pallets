@@ -388,3 +388,19 @@ preparación de sesión de cada base, certificados/nombres incorrectos rechazado
 orígenes ajenos bloqueados. Candidato real verificado en rubenfernandez.cmp3.es y
 cmpslu, sin credenciales ni escrituras de negocio. Addon y política de cuentas
 compartidas sin cambios.
+
+### Pallets con punto — 04/11/2026
+
+Formato vigente: P26.0001. La validación de creación y etiquetas y el lector HID
+sin sufijo admiten el punto literal, manteniendo guiones durante el despliegue
+compatible. Los códigos y el contenido del QR proceden siempre de Odoo; no se
+convierten etiquetas antiguas a otras identidades desde el navegador.
+
+124 pruebas React, 33 pruebas de demo y compilación correctas. La web se desplegó
+antes de migrar el addon 16.0.1.26.0; la comprobación del servicio, orígenes HTTPS,
+cookies y autenticación anónima volvió a pasar después de actualizar Odoo.
+Sin cambios en credenciales, destinos, perfiles de operario ni permisos de negocio.
+
+Para una recuperación del addon, esta web admite ambos separadores. La imagen web
+anterior que sólo admitía guion requiere coordinar su recuperación con el formato
+del backend; conservar la web compatible si se revierte sólo el addon.

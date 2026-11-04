@@ -143,3 +143,9 @@ QR nuevos sin prefijo (16.0.1.17.0): las etiquetas y descargas de pallets contie
 sólo su nombre visible, por ejemplo P26-0001. Mantener lectura de QR antiguos con
 CMP:PALLET:, y aceptar ambas respuestas de etiqueta durante la actualización.
 No cambian nombres, secuencia, OFs, ubicaciones ni la información opcional.
+
+Since backend 16.0.1.26.0, current pallet names use P26.0001 with a literal dot.
+API validation and idle HID recognition accept dot and legacy hyphen formats for
+rollout compatibility. Display and print the server's actual code; never rewrite
+names/QRs client-side or map an old label to another identity. Deploy this compatible
+web before migrating the addon. Number allocation/reuse is a separate decision.

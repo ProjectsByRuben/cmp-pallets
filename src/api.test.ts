@@ -194,3 +194,14 @@ it('accepts legacy prefixed label images during a rolling upgrade', async () => 
   const api = new OdooAccessApi(vi.fn().mockResolvedValue(ok(label)));
   await expect(api.label('synthetic-token', 4)).resolves.toEqual(label);
 });
+
+it('accepts dot-separated creation and label identities without weakening exact validation', async () => {
+  const created = { ok: true, pallet_id: 4, pallet_code: 'P26.0004' };
+  const label = { ok: true, pallet_id: 4, code: 'P26.0004', qr_payload: 'P26.0004', png_base64: 'iVBORw0KGgo=' };
+  const fetcher = vi.fn().mockResolvedValueOnce(ok(created)).mockResolvedValueOnce(ok(label));
+  const api = new OdooAccessApi(fetcher);
+  await expect(api.createPallet('synthetic-token', { request_id: 'dot-create' })).resolves.toEqual(created);
+  await expect(api.label('synthetic-token', 4)).resolves.toEqual(label);
+  const invalid = new OdooAccessApi(vi.fn().mockResolvedValue(ok({ ...created, pallet_code: 'P26X0004' })));
+  await expect(invalid.createPallet('synthetic-token', { request_id: 'invalid-separator' })).rejects.toMatchObject({ kind: 'network' });
+});

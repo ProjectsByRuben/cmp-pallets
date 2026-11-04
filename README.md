@@ -1,5 +1,13 @@
 # CMP Pallets
 
+Formato vigente de pallets desde el 04/11/2026: **P26.0001**, con punto y cuatro
+cifras como mínimo. La creación y las etiquetas aceptan respuestas con punto;
+el lector también las reconoce sin sufijo. Se conserva la validación de guiones
+durante el despliegue compatible. Nombres y QR siempre proceden de Odoo: la web
+no renombra registros ni convierte etiquetas antiguas a otra identidad. Actualizar
+esta web antes de migrar cmp_mrp_packages a 16.0.1.26.0. La asignación/reutilización
+de números queda sujeta a la decisión separada; este cambio sólo adapta el formato.
+
 > Contrato actual: ver «Etiqueta A4 y creación flexible — 04/11/2026». Sustituye las restricciones de cliente y las etiquetas comerciales anteriores.
 
 El proyecto contiene dos entradas independientes: **la aplicación React con acceso
