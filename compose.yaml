@@ -5,7 +5,7 @@ services:
     build:
       context: .
     environment:
-      CMP_APP_URL: https://pallets.cmp3.es
+      CMP_APP_URL: https://rubenpallets.cmp3.es
       CMP_ODOO_URL: https://rubenfernandez.cmp3.es
       CMP_ODOO_DB: cmpslu
     ports:

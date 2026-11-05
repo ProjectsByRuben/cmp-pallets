@@ -1,14 +1,15 @@
 # Entrada de CMP Pallets en CMP/VPN
 
-DNS y proxy HTTPS configurados y verificados el 29 de octubre de 2026.
+Entrada original configurada el 29 de octubre de 2026; dominio de pruebas
+actualizado a rubenpallets.cmp3.es y comprobado por HTTPS el 05/11/2026.
 Este documento conserva los datos para mantenimiento o reinstalación.
 
 ## Datos concretos
 
 | Elemento | Valor |
 | --- | --- |
-| URL de entrada | `https://pallets.cmp3.es` |
-| Registro DNS interno A | `pallets.cmp3.es` → `192.168.1.110` |
+| URL de entrada | `https://rubenpallets.cmp3.es` |
+| Registro DNS interno A | `rubenpallets.cmp3.es` → `192.168.1.110` |
 | Proxy central existente | `192.168.1.110`, misma entrada que `rubenfernandez.cmp3.es` |
 | Protocolo del destino | **HTTP** (el HTTPS termina en el proxy central) |
 | IP del destino | **192.168.1.50** |
@@ -22,12 +23,12 @@ cuando Docker vuelve a estar disponible, salvo que se haya detenido manualmente.
 
 ## Configuración a solicitar
 
-Crear la entrada HTTPS para `pallets.cmp3.es`, con certificado válido para los
+Crear la entrada HTTPS para `rubenpallets.cmp3.es`, con certificado válido para los
 navegadores de CMP, y dirigir **todas sus rutas** al destino HTTP anterior. Incluye
 los archivos estáticos y `/api/`; el contenedor local ya encamina las rutas limitadas
 necesarias hacia Odoo. No enviar `/api/` a otro dominio ni a otro upstream.
 
-Preservar `Host: pallets.cmp3.es`, enviar `X-Forwarded-Proto: https` y conservar la
+Preservar `Host: rubenpallets.cmp3.es`, enviar `X-Forwarded-Proto: https` y conservar la
 dirección original del cliente en `X-Forwarded-For`. No almacenar en caché respuestas
 de API ni retirar sus cookies. El servicio local fuerza cookies de sesión Secure,
 HttpOnly y SameSite=Lax y rechaza API por un origen HTTP directo o un Origin ajeno.
@@ -56,7 +57,7 @@ el DNS no basta para usar la aplicación: también se necesita el host HTTPS ant
 
 ## Comprobaciones finales tras configurar el dominio
 
-- Resolución de `pallets.cmp3.es` a 192.168.1.110 desde CMP y VPN.
+- Resolución de `rubenpallets.cmp3.es` a 192.168.1.110 desde CMP y VPN.
 - Certificado confiable y carga de React por HTTPS desde PC e iPhone.
 - Inicio de sesión, empleado y PIN, consulta de una OF y cierre/cambio de operario.
 - Lectura con Eyoyo y permiso de cámara en el iPhone real.
@@ -81,3 +82,14 @@ orígenes desde estas variables. Sustituyen los antiguos CMP_ODOO_HOST/UPSTREAM 
 base repetida en build.args. Cambios de configuración requieren recrear el contenedor,
 sin recompilar React. La entrada del proxy central debe corresponder a CMP_APP_URL;
 el addon sigue siendo necesario en cada Odoo destino.
+
+
+## Separación de producción, 05/11/2026
+
+Los datos anteriores corresponden a la web de pruebas del PC. El dominio
+pallets.cmp3.es queda reservado para producción: su entrada independiente en el
+proxy central apunta a http://192.168.1.239:4180, con Host pallets.cmp3.es y HTTPS.
+No enviar el dominio de pruebas al servidor de producción ni intercambiar los
+backends de los Compose. Producción configura https://odoo.cmp3.es y cmp_gim;
+pruebas conserva https://rubenfernandez.cmp3.es y cmpslu. Cada dominio necesita
+resolución DNS y certificado válidos. Recargar las pestañas al cambiar el origen.

@@ -32,7 +32,7 @@ Desde la raíz web: `npm test`, `npm run build`, `npm run dev` (127.0.0.1:4184),
 `python3 deploy/check_service.py` y `./deploy/up.sh` para desplegar cuando esté autorizado.
 El proyecto Docker es cmp-pallets y usa el compose.yaml del repositorio original.
 La web compilada corre en cmp-pallets-web-1 y no monta src. El proxy de entrada
-sirve https://pallets.cmp3.es con las mismas restricciones de origen y autenticación.
+sirve https://rubenpallets.cmp3.es con las mismas restricciones de origen y autenticación.
 
 Desde la raíz Doodba: `docker compose exec -T odoo python3
 /opt/odoo/auto/addons/cmp_mrp_packages/tests/run_cmpslu.py --browser`.
@@ -51,7 +51,7 @@ instancia oficial. compose.yaml define CMP_ODOO_UPSTREAM (servidor:puerto),
 CMP_ODOO_HOST (nombre TLS/Host canónico) y CMP_ODOO_DB (también en build.args).
 Nginx utiliza HTTPS, SNI y verificación de certificado y nombre con la CA del sistema.
 
-La web sigue en https://pallets.cmp3.es y valida el Origin del navegador contra ese
+La web sigue en https://rubenpallets.cmp3.es y valida el Origin del navegador contra ese
 origen antes de reenviar. Después traduce Host, X-Forwarded-Host y el Origin no vacío
 al origen canónico HTTPS de Odoo. Un Origin ausente permanece ausente. Esto permite
 pasar por el proxy del dominio sin eliminar las comprobaciones del addon ni abrir
@@ -88,7 +88,7 @@ Esta revisión sustituye CMP_ODOO_UPSTREAM/CMP_ODOO_HOST y la base compilada por
 
 ```yaml
 environment:
-  CMP_APP_URL: https://pallets.cmp3.es
+  CMP_APP_URL: https://rubenpallets.cmp3.es
   CMP_ODOO_URL: https://rubenfernandez.cmp3.es
   CMP_ODOO_DB: cmpslu
 ```
@@ -133,3 +133,12 @@ Docker publicado.
 La selección de empleados de cuentas compartidas del addon aún usa la política
 SHARED_DEPARTMENTS en Python. Esta revisión parametriza la conexión de la web y no
 modifica esa política de autorización ni los permisos nativos de Odoo.
+
+
+## Separación de dominios, 05/11/2026
+
+El Compose de este repositorio corresponde al PC y cmpslu: su URL es
+https://rubenpallets.cmp3.es. La web desplegada en 192.168.1.239 utiliza
+https://pallets.cmp3.es y conserva su configuración local para odoo.cmp3.es/cmp_gim.
+No sustituir el Compose del servidor por el de pruebas durante una actualización.
+La instalación del addon en el Odoo oficial 192.168.1.252 la gestiona su responsable.

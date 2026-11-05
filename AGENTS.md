@@ -157,3 +157,11 @@ The separately authorized one-time local test-history cleanup starts at P26.0001
 and revokes Pallets profiles to prevent stale checkpoints replaying cleared journals.
 Users must reload and identify again; OFs and locations are preserved. This is not
 a reusable application reset flow. No frontend rebuild is needed for this policy.
+
+
+Since 05/11/2026 the tracked compose.yaml targets the PC test app at
+https://rubenpallets.cmp3.es, still using rubenfernandez.cmp3.es/cmpslu.
+Production web runs separately at 192.168.1.239 behind https://pallets.cmp3.es;
+its server-local Compose uses odoo.cmp3.es/cmp_gim. Preserve those production
+values when updating that checkout. Never deploy the tracked test Compose there.
+The official Odoo is a service on 192.168.1.252; its addon is managed by the colleague.

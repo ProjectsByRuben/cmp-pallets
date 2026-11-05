@@ -1,5 +1,13 @@
 # CMP Pallets
 
+Entorno de pruebas: https://rubenpallets.cmp3.es
+Conecta con https://rubenfernandez.cmp3.es, base cmpslu.
+
+Entorno de producción: https://pallets.cmp3.es
+Web alojada en 192.168.1.239, configurada para
+https://odoo.cmp3.es, base cmp_gim.
+La instalación y validación del addon en producción corresponde al responsable de Odoo.
+
 Formato vigente de pallets desde el 04/11/2026: **P26.0001**, con punto y cuatro
 cifras como mínimo. La creación y las etiquetas aceptan respuestas con punto;
 el lector también las reconoce sin sufijo. Se conserva la validación de guiones
@@ -29,7 +37,7 @@ Tiene reinicio `unless-stopped`, usuario sin privilegios, imagen con sistema de
 archivos de sólo lectura y temporales en memoria. No monta el código de desarrollo:
 editar `src/` no cambia esta versión hasta volver a compilar y desplegar.
 
-La URL operativa es **`https://pallets.cmp3.es`**, con DNS y HTTPS configurados en
+La URL operativa de pruebas es **`https://rubenpallets.cmp3.es`**, con DNS y HTTPS configurados en
 192.168.1.110 y servicio local comprobado por la IP LAN. Su
 API exige el hostname y marcador HTTPS del proxy y no admite iniciar sesión entrando
 directamente por la IP HTTP. La ruta `/healthz` sí responde `200` y `ok` para comprobar
@@ -64,9 +72,9 @@ ni del filestore. No se elimina ninguna imagen automáticamente. `rollback.sh` r
 que exista esa referencia anterior. La compilación usa dependencias bloqueadas e
 imágenes base fijadas por digest. El runtime no necesita Node ni el servidor Vite.
 
-Dentro de Docker Desktop, Nginx conecta únicamente las rutas autorizadas con
-`host.docker.internal:16069`; el proyecto no depende de los nombres o redes Compose
-de Doodba. Odoo tiene ahora `PROXY_MODE=true` en su configuración de infraestructura
+Dentro de Docker Desktop, Nginx conecta únicamente las rutas autorizadas por HTTPS
+con `rubenfernandez.cmp3.es`, base `cmpslu`; el proyecto no depende de los nombres o
+redes Compose de Doodba. Odoo tiene ahora `PROXY_MODE=true` en su configuración de infraestructura
 validada para reconocer el esquema HTTPS enviado por el proxy. No se ha cambiado
 la base, usuarios, PIN, filestore o código de OdooClaw por este despliegue.
 
@@ -520,3 +528,22 @@ QR nuevos sin prefijo (16.0.1.17.0): las etiquetas y descargas de pallets contie
 sólo su nombre visible, por ejemplo P26-0001. Mantener lectura de QR antiguos con
 CMP:PALLET:, y aceptar ambas respuestas de etiqueta durante la actualización.
 No cambian nombres, secuencia, OFs, ubicaciones ni la información opcional.
+
+
+## Dominio de pruebas separado de producción (05/11/2026)
+
+El compose.yaml versionado configura el PC de pruebas: CMP_APP_URL es
+https://rubenpallets.cmp3.es, CMP_ODOO_URL sigue siendo
+https://rubenfernandez.cmp3.es y CMP_ODOO_DB sigue siendo cmpslu.
+Aplicar cambios de estas variables recreando el servicio web con
+`docker compose -f compose.yaml -p cmp-pallets up -d --force-recreate --no-build --wait web`.
+No basta reiniciar el contenedor ni hace falta recompilar React. Después ejecutar
+`python3 deploy/check_service.py`, recargar la web e identificarse de nuevo.
+
+La web de producción de 192.168.1.239 usa https://pallets.cmp3.es y su Compose local
+apunta a https://odoo.cmp3.es, base cmp_gim. Al actualizar ese servidor, conservar
+explícitamente sus tres valores de producción: el Compose versionado es de pruebas.
+No hacer restore/reset del Compose de producción ni resolver un conflicto aceptando
+la configuración de pruebas. El proxy HTTPS mantiene entradas independientes para
+rubenpallets.cmp3.es (PC, 192.168.1.50:4180) y pallets.cmp3.es (192.168.1.239:4180).
+Las referencias anteriores en el historial describen despliegues de sus respectivas fechas.
