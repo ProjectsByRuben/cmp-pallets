@@ -1,7 +1,12 @@
 # CMP Pallets
 
-Antes de actuar, leer `/home/rubenfernandez/CMP/GUIA_DE_TRABAJO_CMP.md`
-y `/home/rubenfernandez/CMP/AGENTS.md`, además de estas instrucciones.
+Método de ejecución: [política común CMP](/home/rubenfernandez/CMP/agentes/METODO.md)
+(06/11/2026). Leerla una vez y consultar la guía general por apartados pertinentes.
+Trabajar con autonomía, sin modo tutor, con pruebas proporcionales al cambio.
+Las reglas de negocio y seguridad específicas de este documento se conservan.
+
+Consultar la guía CMP para rutas y operaciones de este proyecto; aplicar también
+`/home/rubenfernandez/CMP/AGENTS.md`.
 
 Proyecto independiente con dos entradas. `dist/` conserva la demo de OFs, pallets
 y ubicaciones con datos ficticios en localStorage, sin conexión Odoo. `src/` contiene
