@@ -1,5 +1,14 @@
 # CMP Pallets
 
+## Manuales
+
+- [Guía de uso con ejemplos y capturas](docs/Guia_completa_CMP_Pallets_con_capturas.pdf).
+- [Manual de instalación](docs/Manual_instalacion_CMP_Pallets.pdf): despliegue en el servidor .110, conexión con Odoo, proxy y recuperación.
+
+La carpeta `docs/` contiene únicamente estos dos manuales. Los diseños, planes e
+históricos retirados pueden consultarse en el historial de Git. La guía de uso
+incorpora la actualización de ubicaciones y consulta de OFs del 25/11/2026.
+
 ### Odoo DNS resolution in Docker (24/11/2026)
 
 The web proxy resolves the Odoo hostname through Docker's embedded DNS using IPv4,
@@ -298,7 +307,7 @@ Distribuciones npm jsqr 1.4.0 (Apache-2.0) y qrcode-generator 1.4.4 (MIT), verif
 
 Vista centrada con iconos SVG locales grandes y etiquetas, acceso directo a cámara, asociación de OFs y traslado de pallets. «Asociar OFs» prepara la pantalla para la misma secuencia de lectura existente. El catálogo de pallets está plegado en Inicio y la ayuda, etiquetas y datos de prueba se agrupan en «Opciones de prueba». Los controles de Volver, Inicio y Quitar continúan visibles en sus pantallas. No cambia la clave de almacenamiento ni las operaciones de negocio.
 
-La versión anterior (4, commit `c1de498`) permanece guardada en Sites y tiene una copia fuente independiente. Identificadores y recuperación documentados en [docs/versiones.md](docs/versiones.md). Iconos en `dist/icons.mjs` y ajustes de esta vista en `dist/workspace.css`; los tokens CMP originales se conservan.
+La versión anterior (4, commit `c1de498`) permanece guardada en Sites y tiene una copia fuente independiente. El historial de Git conserva las referencias históricas de esa versión. Iconos en `dist/icons.mjs` y ajustes de esta vista en `dist/workspace.css`; los tokens CMP originales se conservan.
 
 ## Repositorio y desarrollo
 
@@ -310,14 +319,14 @@ El repositorio original y la carpeta de trabajo son
 Es un Git independiente de Doodba y de OdooClaw. No crear worktrees ni ramas de
 desarrollo para Pallets. La antigua carpeta `worktrees/cmp-pallets/desarrollo` se
 retira tras verificar las rutas; las dependencias y el build locales se conservan
-en el repositorio original. Guía de carpetas y tareas: [docs/organizacion.md](docs/organizacion.md).
+en el repositorio original. Las rutas y tareas de desarrollo se describen en este README y en los workspaces del proyecto.
 
 El código publicado actualmente en Sites corresponde al commit `4570ef1`; los cambios
 de organización y documentación no requieren volver a desplegar.
 La demo sigue en https://cmp-pallets-iphone-demo.cmp-grupo-7773.chatgpt.site.
 Guardar en GitHub no publica automáticamente en Sites. Para cambiar la demo,
 validar las pruebas y desplegar las fuentes en el proyecto Sites existente.
-La versión anterior se conserva según `docs/versiones.md`.
+Las referencias de la versión anterior se conservan en el historial de Git.
 
 ### Asociación OF → pallet preparada
 
@@ -358,7 +367,7 @@ El nuevo incremento conserva OFs, pallets y ubicación en cualquier orden de lec
 Con varios pallets, elegir uno como destino de las OFs. Para ubicaciones, confirmar
 el traslado de todo el grupo; los pallets ya ubicados allí no generan cambios ficticios.
 Asociar y mover son acciones independientes. Ver
-[selección y ubicaciones](docs/seleccion-y-ubicaciones.md) para uso y reintentos.
+[la guía de uso](docs/Guia_completa_CMP_Pallets_con_capturas.pdf) para uso y reintentos.
 Activado con autorización de Rubén el 29/10/2026: addon 16.0.1.7.0 actualizado en
 cmpslu, Odoo reiniciado y servicio web reconstruido. HTTPS, sesión y ruta de
 movimiento comprobados en pallets.cmp3.es; el bundle servido coincide con el build.

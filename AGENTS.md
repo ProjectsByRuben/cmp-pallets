@@ -54,7 +54,7 @@ requiere nueva compilación para adoptar cambios. `deploy/check_service.py` comp
 la entrada sin credenciales ni escrituras de negocio.
 DNS y HTTPS de `pallets.cmp3.es` están operativos y se verificaron el 29/10/2026.
 Selección flexible y traslado múltiple activados ese día con addon 16.0.1.7.0,
-reinicio de Odoo y nueva imagen web. Ver `docs/versiones.md` para referencias de imagen y rollback. Odoo necesita conservar `PROXY_MODE=true`.
+reinicio de Odoo y nueva imagen web. Consultar el manual de instalación en `docs/Manual_instalacion_CMP_Pallets.pdf` para rollback; las referencias históricas están en Git. Odoo necesita conservar `PROXY_MODE=true`.
 
 
 Selección flexible: OFs, pallets, ubicación y consulta tienen estados independientes.
