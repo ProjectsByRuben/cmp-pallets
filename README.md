@@ -1,5 +1,22 @@
 # CMP Pallets
 
+### Odoo DNS resolution in Docker (24/11/2026)
+
+The web proxy resolves the Odoo hostname through Docker's embedded DNS using IPv4,
+refreshing answers every 60 seconds. This prevents intermittent 502 responses on
+hosts without IPv6 routing when the Odoo hostname also publishes AAAA records.
+TLS certificate verification, SNI, Origin/CSRF checks and request retry policy are
+unchanged; no external IP is pinned and no Odoo configuration change is needed.
+The upstream `resolve` parameter requires Nginx 1.27.3 or newer (the inspected .239
+runtime uses 1.30.6). Preserve this proxy change when installing on .110.
+
+Applied to the .239 web container on 24/11/2026 while preserving its previous
+image and production connection settings. HTTPS database-session preparation for
+odoo.cmp3.es/cmp_gim succeeds; `/cmp_pallets/access/bootstrap` currently returns
+Odoo HTTP 404. The official Odoo administrator must check that the backend addon
+is installed, current and loaded before operator login can be validated. No
+official Odoo module, business record, permission or PIN was changed by this fix.
+
 Entorno de pruebas: https://rubenpallets.cmp3.es
 Conecta con https://rubenfernandez.cmp3.es, base cmpslu.
 

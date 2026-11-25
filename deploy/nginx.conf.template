@@ -43,7 +43,15 @@ http {
         default 0;
         "${CMP_ENVIRONMENT}" 1;
     }
-    upstream odoo { server ${CMP_ODOO_UPSTREAM}; }
+    # Docker's embedded DNS refreshes Odoo addresses without selecting IPv6
+    # routes that may be unavailable on the host. Keep the HTTPS hostname for
+    # certificate verification and SNI; never pin an external provider's IP.
+    resolver 127.0.0.11 valid=60s ipv6=off;
+    resolver_timeout 5s;
+    upstream odoo {
+        zone odoo 64k;
+        server ${CMP_ODOO_UPSTREAM} resolve;
+    }
 
     server {
         listen 8080 default_server;
